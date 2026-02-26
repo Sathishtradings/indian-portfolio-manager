@@ -628,90 +628,166 @@ function App() {
             </div>
 
             {selectedStock && (
-              <div className="bg-white rounded-xl shadow-sm p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h3 className="text-2xl font-bold text-gray-800">{selectedStock.symbol}</h3>
-                    <p className="text-gray-600 mt-1">Detailed Technical Analysis</p>
-                  </div>
-                  <button
-                    onClick={() => setSelectedStock(null)}
-                    className="p-2 hover:bg-gray-100 rounded-lg"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
+  <div className="bg-white rounded-xl shadow-sm p-6">
+    <div className="flex items-center justify-between mb-6">
+      <div>
+        <h3 className="text-2xl font-bold text-gray-800">{selectedStock.symbol}</h3>
+        <p className="text-gray-600 mt-1">Detailed Technical Analysis</p>
+      </div>
+      <button
+        onClick={() => setSelectedStock(null)}
+        className="p-2 hover:bg-gray-100 rounded-lg"
+      >
+        <X className="w-5 h-5" />
+      </button>
+    </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                  <div className="bg-blue-50 rounded-lg p-4">
-                    <div className="text-sm text-gray-600 mb-1">SMA 20</div>
-                    <div className="text-xl font-bold text-gray-800">
-                      ₹{selectedStock.analysis.indicators.sma20?.toFixed(2)}
-                    </div>
-                  </div>
-                  <div className="bg-purple-50 rounded-lg p-4">
-                    <div className="text-sm text-gray-600 mb-1">SMA 50</div>
-                    <div className="text-xl font-bold text-gray-800">
-                      ₹{selectedStock.analysis.indicators.sma50?.toFixed(2)}
-                    </div>
-                  </div>
-                  <div className="bg-green-50 rounded-lg p-4">
-                    <div className="text-sm text-gray-600 mb-1">RSI (14)</div>
-                    <div className="text-xl font-bold text-gray-800">
-                      {selectedStock.analysis.indicators.rsi?.toFixed(1)}
-                    </div>
-                  </div>
-                  <div className="bg-orange-50 rounded-lg p-4">
-                    <div className="text-sm text-gray-600 mb-1">MACD</div>
-                    <div className="text-xl font-bold text-gray-800">
-                      {selectedStock.analysis.indicators.macd?.toFixed(2)}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mb-6">
-                  <h4 className="font-semibold text-gray-800 mb-3">Trading Signals</h4>
-                  <div className={`p-4 rounded-lg ${
-                    selectedStock.analysis.action?.includes('BUY') ? 'bg-green-50 border border-green-200' :
-                    selectedStock.analysis.action?.includes('SELL') ? 'bg-red-50 border border-red-200' :
-                    'bg-gray-50 border border-gray-200'
-                  }`}>
-                    <div className="flex items-center justify-between mb-3">
-                      <span className={`text-2xl font-bold ${
-                        selectedStock.analysis.action?.includes('BUY') ? 'text-green-600' :
-                        selectedStock.analysis.action?.includes('SELL') ? 'text-red-600' :
-                        'text-gray-600'
-                      }`}>
-                        {selectedStock.analysis.action}
-                      </span>
-                      <span className="text-lg font-semibold text-gray-700">
-                        {selectedStock.analysis.strength} Signal
-                      </span>
-                    </div>
-                    <ul className="space-y-2">
-                      {selectedStock.analysis.signals.map((signal, idx) => (
-                        <li key={idx} className="flex items-start text-sm text-gray-700">
-                          <AlertCircle className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" />
-                          <span><strong>{signal.indicator}:</strong> {signal.description}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-
-                <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={selectedStock.data}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip />
-                    <Area type="monotone" dataKey="close" stroke="#f97316" fill="#fb923c" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            )}
+    {/* NEW: Trend Indicator */}
+    {selectedStock.analysis.trend && (
+      <div className="mb-6">
+        <h4 className="font-semibold text-gray-800 mb-3">Trend Analysis</h4>
+        <div className={`p-4 rounded-lg border-2 ${
+          selectedStock.analysis.trend.color === 'green' ? 'bg-green-50 border-green-200' :
+          selectedStock.analysis.trend.color === 'lightgreen' ? 'bg-green-50 border-green-200' :
+          selectedStock.analysis.trend.color === 'red' ? 'bg-red-50 border-red-200' :
+          selectedStock.analysis.trend.color === 'orange' ? 'bg-orange-50 border-orange-200' :
+          'bg-gray-50 border-gray-200'
+        }`}>
+          <div className="flex items-center justify-between mb-2">
+            <span className={`text-xl font-bold ${
+              selectedStock.analysis.trend.color === 'green' || selectedStock.analysis.trend.color === 'lightgreen' ? 'text-green-600' :
+              selectedStock.analysis.trend.color === 'red' || selectedStock.analysis.trend.color === 'orange' ? 'text-red-600' :
+              'text-gray-600'
+            }`}>
+              {selectedStock.analysis.trend.direction}
+            </span>
+            <span className="text-lg font-semibold text-gray-700">
+              {selectedStock.analysis.trend.percentage}%
+            </span>
           </div>
-        )}
+          <p className="text-sm text-gray-600">{selectedStock.analysis.trend.description}</p>
+          <div className="mt-3">
+            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div 
+                className={`h-full ${
+                  selectedStock.analysis.trend.color === 'green' || selectedStock.analysis.trend.color === 'lightgreen' ? 'bg-green-500' :
+                  selectedStock.analysis.trend.color === 'red' || selectedStock.analysis.trend.color === 'orange' ? 'bg-red-500' :
+                  'bg-gray-500'
+                }`}
+                style={{ width: `${Math.min(100, Math.abs(selectedStock.analysis.trend.strength))}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* NEW: Chart Patterns */}
+    {selectedStock.analysis.patterns && selectedStock.analysis.patterns.length > 0 && (
+      <div className="mb-6">
+        <h4 className="font-semibold text-gray-800 mb-3">Detected Chart Patterns</h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {selectedStock.analysis.patterns.map((pattern, idx) => (
+            <div 
+              key={idx}
+              className={`p-4 rounded-lg border-2 ${
+                pattern.type === 'BULLISH' ? 'bg-green-50 border-green-200' :
+                pattern.type === 'BEARISH' ? 'bg-red-50 border-red-200' :
+                'bg-blue-50 border-blue-200'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className={`font-bold text-sm ${
+                  pattern.type === 'BULLISH' ? 'text-green-600' :
+                  pattern.type === 'BEARISH' ? 'text-red-600' :
+                  'text-blue-600'
+                }`}>
+                  {pattern.name}
+                </span>
+                <span className="text-xs px-2 py-1 bg-white rounded-full font-semibold">
+                  {pattern.confidence}% confident
+                </span>
+              </div>
+              <p className="text-xs text-gray-600 mb-2">{pattern.description}</p>
+              <p className="text-xs font-semibold text-gray-700">
+                💡 {pattern.action}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+    {/* Existing Technical Indicators */}
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="bg-blue-50 rounded-lg p-4">
+        <div className="text-sm text-gray-600 mb-1">SMA 20</div>
+        <div className="text-xl font-bold text-gray-800">
+          ₹{selectedStock.analysis.indicators.sma20?.toFixed(2)}
+        </div>
+      </div>
+      <div className="bg-purple-50 rounded-lg p-4">
+        <div className="text-sm text-gray-600 mb-1">SMA 50</div>
+        <div className="text-xl font-bold text-gray-800">
+          ₹{selectedStock.analysis.indicators.sma50?.toFixed(2)}
+        </div>
+      </div>
+      <div className="bg-green-50 rounded-lg p-4">
+        <div className="text-sm text-gray-600 mb-1">RSI (14)</div>
+        <div className="text-xl font-bold text-gray-800">
+          {selectedStock.analysis.indicators.rsi?.toFixed(1)}
+        </div>
+      </div>
+      <div className="bg-orange-50 rounded-lg p-4">
+        <div className="text-sm text-gray-600 mb-1">MACD</div>
+        <div className="text-xl font-bold text-gray-800">
+          {selectedStock.analysis.indicators.macd?.toFixed(2)}
+        </div>
+      </div>
+    </div>
+
+    {/* Rest of your existing code for signals and chart */}
+    <div className="mb-6">
+      <h4 className="font-semibold text-gray-800 mb-3">Trading Signals</h4>
+      <div className={`p-4 rounded-lg ${
+        selectedStock.analysis.action?.includes('BUY') ? 'bg-green-50 border border-green-200' :
+        selectedStock.analysis.action?.includes('SELL') ? 'bg-red-50 border border-red-200' :
+        'bg-gray-50 border border-gray-200'
+      }`}>
+        <div className="flex items-center justify-between mb-3">
+          <span className={`text-2xl font-bold ${
+            selectedStock.analysis.action?.includes('BUY') ? 'text-green-600' :
+            selectedStock.analysis.action?.includes('SELL') ? 'text-red-600' :
+            'text-gray-600'
+          }`}>
+            {selectedStock.analysis.action}
+          </span>
+          <span className="text-lg font-semibold text-gray-700">
+            {selectedStock.analysis.strength} Signal
+          </span>
+        </div>
+        <ul className="space-y-2">
+          {selectedStock.analysis.signals.map((signal, idx) => (
+            <li key={idx} className="flex items-start text-sm text-gray-700">
+              <AlertCircle className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" />
+              <span><strong>{signal.indicator}:</strong> {signal.description}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+
+    <ResponsiveContainer width="100%" height={300}>
+      <AreaChart data={selectedStock.data}>
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis dataKey="date" />
+        <YAxis />
+        <Tooltip />
+        <Area type="monotone" dataKey="close" stroke="#f97316" fill="#fb923c" />
+      </AreaChart>
+    </ResponsiveContainer>
+  </div>
+)}
 
         {activeTab === 'portfolio' && (
           <div>
