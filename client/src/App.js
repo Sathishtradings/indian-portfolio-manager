@@ -778,16 +778,16 @@ function App() {
     </div>
 
     <ResponsiveContainer width="100%" height={300}>
-      <AreaChart data={selectedStock.data}>
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="date" />
-        <YAxis />
-        <Tooltip />
-        <Area type="monotone" dataKey="close" stroke="#f97316" fill="#fb923c" />
-      </AreaChart>
-    </ResponsiveContainer>
-  </div>
-)}
+         <AreaChart data={selectedStock.data}>
+           <CartesianGrid strokeDasharray="3 3" />
+           <XAxis dataKey="date" />
+           <YAxis />
+           <Tooltip />
+           <Area type="monotone" dataKey="close" stroke="#f97316" fill="#fb923c" />
+         </AreaChart>
+       </ResponsiveContainer>
+      </div>
+    )}
 
         {activeTab === 'portfolio' && (
           <div>
