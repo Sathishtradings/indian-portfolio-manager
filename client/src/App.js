@@ -786,7 +786,7 @@ function App() {
            <Area type="monotone" dataKey="close" stroke="#f97316" fill="#fb923c" />
          </AreaChart>
        </ResponsiveContainer>
-      </div>
+    </div>
     )}
 
         {activeTab === 'portfolio' && (
