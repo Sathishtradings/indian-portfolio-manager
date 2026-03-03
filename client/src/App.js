@@ -68,17 +68,42 @@ function App() {
   });
 
   // Check if user is logged in on mount
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('user');
+  // Check if user is logged in on mount
+useEffect(() => {
+  const token = localStorage.getItem('token');
+  const savedUser = localStorage.getItem('user');
+  
+  if (token && savedUser) {
+    const user = JSON.parse(savedUser);
+    setUsername(user.name);
+    setIsLoggedIn(true);
+    loadPortfolio();
+  }
+}, []);
+
+// NEW: Auto-refresh portfolio prices every 5 minutes
+useEffect(() => {
+  let intervalId;
+  
+  if (isLoggedIn && activeTab === 'portfolio' && portfolio.holdings.length > 0) {
+    console.log('📊 Auto-refresh enabled for portfolio prices');
     
-    if (token && savedUser) {
-      const user = JSON.parse(savedUser);
-      setUsername(user.name);
-      setIsLoggedIn(true);
+    // Refresh every 5 minutes (300000 ms)
+    intervalId = setInterval(() => {
+      const now = new Date().toLocaleTimeString('en-IN');
+      console.log(`🔄 Auto-refreshing portfolio prices at ${now}...`);
       loadPortfolio();
+    }, 5 * 60 * 1000); // 5 minutes
+  }
+  
+  // Cleanup: Stop auto-refresh when user leaves portfolio tab or logs out
+  return () => {
+    if (intervalId) {
+      clearInterval(intervalId);
+      console.log('⏹️ Auto-refresh stopped');
     }
-  }, []);
+  };
+}, [isLoggedIn, activeTab, portfolio.holdings.length]);
 
   const loadPortfolio = async () => {
     try {
@@ -146,33 +171,41 @@ function App() {
   };
 
   const handleAddPosition = async () => {
-    if (!newPosition.symbol || !newPosition.name || !newPosition.quantity || !newPosition.price) {
-      setError('Please fill all fields');
-      return;
+  if (!newPosition.symbol || !newPosition.name || !newPosition.quantity || !newPosition.price) {
+    setError('Please fill all fields');
+    return;
+  }
+
+  setLoading(true);
+  setError('');
+
+  try {
+    // Check if stock already exists in portfolio
+    const existingStock = portfolio.holdings.find(h => h.symbol === newPosition.symbol.toUpperCase());
+    
+    const response = await portfolioAPI.addHolding({
+      symbol: newPosition.symbol.toUpperCase(),
+      name: newPosition.name,
+      exchange: 'NSE',
+      quantity: parseFloat(newPosition.quantity),
+      price: parseFloat(newPosition.price),
+      type: 'BUY'
+    });
+
+    setPortfolio(response.data);
+    setNewPosition({ symbol: '', name: '', quantity: '', price: '' });
+    setShowAddPosition(false);
+    
+    // Show success message
+    if (existingStock) {
+      alert(`Successfully added ${newPosition.quantity} more shares to ${newPosition.symbol}`);
     }
-
-    setLoading(true);
-    setError('');
-
-    try {
-      const response = await portfolioAPI.addHolding({
-        symbol: newPosition.symbol.toUpperCase(),
-        name: newPosition.name,
-        exchange: 'NSE',
-        quantity: parseFloat(newPosition.quantity),
-        price: parseFloat(newPosition.price),
-        type: 'BUY'
-      });
-
-      setPortfolio(response.data);
-      setNewPosition({ symbol: '', name: '', quantity: '', price: '' });
-      setShowAddPosition(false);
-    } catch (error) {
-      setError(error.response?.data?.message || 'Failed to add position');
-    } finally {
-      setLoading(false);
-    }
-  };
+  } catch (error) {
+    setError(error.response?.data?.message || 'Failed to add position');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleRemovePosition = async (symbol) => {
     if (!window.confirm(`Remove ${symbol} from portfolio?`)) return;
@@ -392,7 +425,7 @@ function App() {
                 <TrendingUp className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-800">Indian Portfolio Manager</h1>
+                <h1 className="text-xl font-bold text-gray-800">BuildnRise Portfolio Manager</h1>
                 <p className="text-sm text-gray-500">Welcome, {username}</p>
               </div>
             </div>
@@ -586,7 +619,17 @@ function App() {
                               <span className="font-semibold text-gray-800">{stock.symbol}</span>
                             </td>
                             <td className="text-right py-3 px-4">
-                              <span className="font-medium">₹{stock.indicators?.currentPrice?.toFixed(2)}</span>
+							  <div className="flex flex-col items-end">
+                                <span className="font-medium">₹{stock.indicators?.currentPrice?.toFixed(2)}</span>
+                                {stock.indicators?.priceChange !== undefined && (
+                                  <span className={`text-xs font-semibold ${
+                                    stock.indicators.priceChange >= 0 ? 'text-green-600' : 'text-red-600'
+                                  }`}>
+                                    {stock.indicators.priceChange >= 0 ? '▲' : '▼'} 
+                                    {Math.abs(stock.indicators.priceChange).toFixed(2)}%
+                                  </span>
+                                )}
+                              </div>
                             </td>
                             <td className="text-right py-3 px-4">
                               <span className={
@@ -834,11 +877,21 @@ function App() {
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-800">Portfolio Holdings</h2>
-                <button
-                  onClick={() => setShowAddPosition(true)}
+            <div className="flex items-center justify-between mb-6">
+  <div>
+    <h2 className="text-xl font-bold text-gray-800">Portfolio Holdings</h2>
+    {portfolio.lastUpdated && (
+      <p className="text-xs text-gray-500 mt-1">
+        Last updated: {new Date(portfolio.lastUpdated).toLocaleTimeString('en-IN', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        })} • Auto-refreshes every 5 min
+      </p>
+    )}
+  </div>
+  <button
+  onClick={() => setShowAddPosition(true)}
                   className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-green-600 text-white rounded-lg font-semibold hover:from-orange-600 hover:to-green-700 transition"
                 >
                   <Plus className="w-4 h-4" />
@@ -847,133 +900,177 @@ function App() {
               </div>
 
               {showAddPosition && (
-                <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                  <h3 className="font-semibold text-gray-800 mb-4">Add New Position</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <input
-                      type="text"
-                      placeholder="Symbol (e.g., RELIANCE)"
-                      value={newPosition.symbol}
-                      onChange={(e) => setNewPosition({...newPosition, symbol: e.target.value})}
-                      className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Company Name"
-                      value={newPosition.name}
-                      onChange={(e) => setNewPosition({...newPosition, name: e.target.value})}
-                      className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    />
-                    <input
-                      type="number"
-                      placeholder="Quantity"
-                      value={newPosition.quantity}
-                      onChange={(e) => setNewPosition({...newPosition, quantity: e.target.value})}
-                      className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    />
-                    <input
-                      type="number"
-                      placeholder="Avg Price (₹)"
-                      value={newPosition.price}
-                      onChange={(e) => setNewPosition({...newPosition, price: e.target.value})}
-                      className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    />
-                  </div>
-                  <div className="flex space-x-3 mt-4">
-                    <button
-                      onClick={handleAddPosition}
-                      disabled={loading}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition disabled:opacity-50"
-                    >
-                      {loading ? 'Adding...' : 'Add Position'}
-                    </button>
-                    <button
-                      onClick={() => setShowAddPosition(false)}
-                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
+  <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+    <div className="flex items-center justify-between mb-4">
+      <h3 className="font-semibold text-gray-800">
+        {newPosition.symbol && portfolio.holdings.find(h => h.symbol === newPosition.symbol.toUpperCase())
+          ? `Add More to ${newPosition.symbol}`
+          : 'Add New Position'}
+      </h3>
+      <button
+        onClick={() => {
+          setShowAddPosition(false);
+          setNewPosition({ symbol: '', name: '', quantity: '', price: '' });
+        }}
+        className="text-gray-500 hover:text-gray-700"
+      >
+        <X className="w-5 h-5" />
+      </button>
+    </div>
+    
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <input
+        type="text"
+        placeholder="Symbol (e.g., RELIANCE)"
+        value={newPosition.symbol}
+        onChange={(e) => setNewPosition({...newPosition, symbol: e.target.value})}
+        disabled={portfolio.holdings.find(h => h.symbol === newPosition.symbol.toUpperCase())}
+        className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+      />
+      <input
+        type="text"
+        placeholder="Company Name"
+        value={newPosition.name}
+        onChange={(e) => setNewPosition({...newPosition, name: e.target.value})}
+        disabled={portfolio.holdings.find(h => h.symbol === newPosition.symbol.toUpperCase())}
+        className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+      />
+      <input
+        type="number"
+        placeholder="Quantity to add"
+        value={newPosition.quantity}
+        onChange={(e) => setNewPosition({...newPosition, quantity: e.target.value})}
+        className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+      />
+      <input
+        type="number"
+        placeholder="Purchase Price (₹)"
+        value={newPosition.price}
+        onChange={(e) => setNewPosition({...newPosition, price: e.target.value})}
+        className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+      />
+    </div>
+    
+    <div className="flex space-x-3 mt-4">
+      <button
+        onClick={handleAddPosition}
+        disabled={loading}
+        className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition disabled:opacity-50"
+      >
+        {loading ? 'Adding...' : portfolio.holdings.find(h => h.symbol === newPosition.symbol.toUpperCase()) ? 'Add to Position' : 'Add Position'}
+      </button>
+      <button
+        onClick={() => {
+          setShowAddPosition(false);
+          setNewPosition({ symbol: '', name: '', quantity: '', price: '' });
+        }}
+        className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition"
+      >
+        Cancel
+      </button>
+    </div>
+  </div>
+)}
 
-              {portfolio.holdings.length === 0 ? (
-                <div className="text-center py-12">
-                  <PieChart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500 mb-4">No holdings yet. Add your first position!</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b-2 border-gray-200">
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Symbol</th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Name</th>
-                        <th className="text-right py-3 px-4 font-semibold text-gray-700">Quantity</th>
-                        <th className="text-right py-3 px-4 font-semibold text-gray-700">Avg Price</th>
-                        <th className="text-right py-3 px-4 font-semibold text-gray-700">Current Price</th>
-                        <th className="text-right py-3 px-4 font-semibold text-gray-700">Total Value</th>
-                        <th className="text-right py-3 px-4 font-semibold text-gray-700">Gain/Loss</th>
-                        <th className="text-center py-3 px-4 font-semibold text-gray-700">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {portfolio.holdings.map((stock, idx) => {
-                        const currentPrice = stock.currentPrice || stock.avgPrice;
-                        const totalCost = stock.quantity * stock.avgPrice;
-                        const currentValue = stock.quantity * currentPrice;
-                        const gainLoss = currentValue - totalCost;
-                        const gainLossPercent = ((gainLoss / totalCost) * 100).toFixed(2);
 
-                        return (
-                          <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
-                            <td className="py-4 px-4">
-                              <span className="font-bold text-gray-800">{stock.symbol}</span>
-                            </td>
-                            <td className="py-4 px-4">
-                              <span className="text-gray-600">{stock.name}</span>
-                            </td>
-                            <td className="text-right py-4 px-4">
-                              <span className="font-medium">{stock.quantity}</span>
-                            </td>
-                            <td className="text-right py-4 px-4">
-                              <span className="font-medium">{formatINR(stock.avgPrice)}</span>
-                            </td>
-                            <td className="text-right py-4 px-4">
-                              <span className="font-medium">{formatINR(currentPrice)}</span>
-                            </td>
-                            <td className="text-right py-4 px-4">
-                              <span className="font-bold">{formatINR(currentValue)}</span>
-                            </td>
-                            <td className="text-right py-4 px-4">
-                              <div className={gainLoss >= 0 ? 'text-green-600' : 'text-red-600'}>
-                                <div className="font-bold">
-                                  {formatINR(gainLoss)}
-                                </div>
-                                <div className="text-sm">
-                                  ({gainLoss >= 0 ? '+' : ''}{gainLossPercent}%)
-                                </div>
-                              </div>
-                            </td>
-                            <td className="text-center py-4 px-4">
-                              <button
-                                onClick={() => handleRemovePosition(stock.symbol)}
-                                disabled={loading}
-                                className="px-3 py-1 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100 transition disabled:opacity-50"
-                              >
-                                Remove
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+    {portfolio.holdings.length === 0 ? (
+  <div className="text-center py-12">
+    <PieChart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+    <p className="text-gray-500 mb-4">No holdings yet. Add your first position!</p>
+  </div>
+) : (
+  <div className="overflow-x-auto">
+    <table className="w-full">
+      <thead>
+        <tr className="border-b-2 border-gray-200">
+          <th className="text-left py-3 px-4 font-semibold text-gray-700">Symbol</th>
+          <th className="text-left py-3 px-4 font-semibold text-gray-700">Name</th>
+          <th className="text-right py-3 px-4 font-semibold text-gray-700">Quantity</th>
+          <th className="text-right py-3 px-4 font-semibold text-gray-700">Avg Price</th>
+          <th className="text-right py-3 px-4 font-semibold text-gray-700">Current Price</th>
+          <th className="text-right py-3 px-4 font-semibold text-gray-700">Total Value</th>
+          <th className="text-right py-3 px-4 font-semibold text-gray-700">Gain/Loss</th>
+          <th className="text-center py-3 px-4 font-semibold text-gray-700">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {portfolio.holdings.map((stock, idx) => {
+          const currentPrice = stock.currentPrice || stock.avgPrice;
+          const totalCost = stock.quantity * stock.avgPrice;
+          const currentValue = stock.quantity * currentPrice;
+          const gainLoss = currentValue - totalCost;
+          const gainLossPercent = ((gainLoss / totalCost) * 100).toFixed(2);
+          const priceChange = ((currentPrice - stock.avgPrice) / stock.avgPrice * 100).toFixed(2);
+
+          return (
+            <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
+              <td className="py-4 px-4">
+                <span className="font-bold text-gray-800">{stock.symbol}</span>
+              </td>
+              <td className="py-4 px-4">
+                <span className="text-gray-600">{stock.name}</span>
+              </td>
+              <td className="text-right py-4 px-4">
+                <span className="font-medium">{stock.quantity}</span>
+              </td>
+              <td className="text-right py-4 px-4">
+                <span className="font-medium">{formatINR(stock.avgPrice)}</span>
+              </td>
+              <td className="text-right py-4 px-4">
+                <div className="flex flex-col items-end">
+                  <span className="font-medium">{formatINR(currentPrice)}</span>
+                  <span className={`text-xs font-semibold ${
+                    parseFloat(priceChange) >= 0 ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {parseFloat(priceChange) >= 0 ? '▲' : '▼'} {Math.abs(parseFloat(priceChange))}%
+                  </span>
                 </div>
-              )}
-            </div>
-          </div>
-        )}
+              </td>
+              <td className="text-right py-4 px-4">
+                <span className="font-bold">{formatINR(currentValue)}</span>
+              </td>
+              <td className="text-right py-4 px-4">
+                <div className={gainLoss >= 0 ? 'text-green-600' : 'text-red-600'}>
+                  <div className="font-bold">
+                    {formatINR(gainLoss)}
+                  </div>
+                  <div className="text-sm">
+                    ({gainLoss >= 0 ? '+' : ''}{gainLossPercent}%)
+                  </div>
+                </div>
+              </td>
+              <td className="text-center py-4 px-4">
+                <div className="flex items-center justify-center space-x-2">
+                  <button
+                    onClick={() => {
+                      setNewPosition({
+                        symbol: stock.symbol,
+                        name: stock.name,
+                        quantity: '',
+                        price: ''
+                      });
+                      setShowAddPosition(true);
+                    }}
+                    className="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-sm font-medium hover:bg-blue-100 transition"
+                  >
+                    Add More
+                  </button>
+                  <button
+                    onClick={() => handleRemovePosition(stock.symbol)}
+                    disabled={loading}
+                    className="px-3 py-1 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100 transition disabled:opacity-50"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  </div>
+)}
 
         {activeTab === 'analytics' && (
           <div className="bg-white rounded-xl shadow-sm p-6">
