@@ -1367,14 +1367,16 @@ function App() {
                                 Remove
                                  <  / button >
                                  <  / div >
-                                 <  / td >
+				                 <  / td >
                                  <  / tr > );
                     })
                 }
                  <  / tbody >
                  <  / table >
-                 <  / div > )
-        }
+                 <  / div > 
+        )}
+		     </div>
+		)}
             {
             activeTab === 'analytics' && (
                  < div className = "bg-white rounded-xl shadow-sm p-6" >
