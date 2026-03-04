@@ -459,7 +459,7 @@ class TechnicalAnalysisService {
   // Analyze stock
   async analyzeStock(symbol) {
     const stockDataService = require('./stockDataService');
-    const [historicalData, stockData] = await Promise.all([stockDataService.getHistoricalData(symbol, 90)
+    const [historicalData, stockData] = await Promise.all([stockDataService.getHistoricalData(symbol, 90),
 		stockDataService.getStockQuote(symbol)]);
     
     return this.generateSignal(historicalData, stockData);
