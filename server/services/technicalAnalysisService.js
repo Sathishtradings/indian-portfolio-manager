@@ -445,7 +445,9 @@ class TechnicalAnalysisService {
         sma50,
         rsi,
         macd,
-        currentPrice
+        currentPrice,
+		previousClose: stockData.previousClose,
+        priceChange: parseFloat(stockData.changePercent.toFixed(2))
       },
       trend,
       patterns

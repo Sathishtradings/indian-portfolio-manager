@@ -737,31 +737,23 @@ function App() {
                                 }
                                  <  / span >
                                  <  / td >
-                                 < td className = "text-right py-3 px-4" >
-                                     < div className = "flex flex-col items-end" >
-                                     < span className = "font-medium" > ₹ {
-									stock.indicators?.currentPrice !=null ?	 
-									 '₹{stock.indicators?.currentPrice?.toFixed(2)}' : '-'
-                                }
-                                 <  / span > {
-                                stock.indicators?.priceChange != null ? (
-                                     < span className = {
-`text-xs font-semibold ${
-                                        stock.indicators.priceChange >= 0 ? 'text-green-600' : 'text-red-600'
-}`
-                                    }
-                                     > {
-                                    stock.indicators.priceChange >= 0 ? '▲' : '▼'
-                                }{
-                                    Math.abs(stock.indicators.priceChange).toFixed(2)
-                                }
-                                     %
-                                     <  / span > ) : (
-									 <span className="text-xs text-gray-400">N/A</span> )
-									 
-                            }
-                                 <  / div >
-                                 <  / td >
+                                <td className="text-right py-3 px-4">
+    <div className="flex flex-col items-end">
+        <span className="font-medium">
+            ₹{stock.indicators?.currentPrice?.toFixed(2) ?? '-'}
+        </span>
+        {stock.trend?.percentage != null ? (
+            <span className={`text-xs font-semibold ${
+                parseFloat(stock.trend.percentage) >= 0 ? 'text-green-600' : 'text-red-600'
+            }`}>
+                {parseFloat(stock.trend.percentage) >= 0 ? '▲' : '▼'}
+                {Math.abs(parseFloat(stock.trend.percentage)).toFixed(2)}%
+            </span>
+        ) : (
+            <span className="text-xs text-gray-400">N/A</span>
+        )}
+    </div>
+</td>
                                  < td className = "text-right py-3 px-4" >
                                      < span className = {
                                     stock.indicators?.rsi < 30 ? 'text-green-600 font-semibold' :
