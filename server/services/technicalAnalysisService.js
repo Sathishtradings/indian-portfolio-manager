@@ -337,7 +337,7 @@ class TechnicalAnalysisService {
   }
 
   // Generate trading signal with trend and patterns
-  generateSignal(data) {
+  generateSignal(data, stockData = {}) {
     const currentPrice = data[data.length - 1].close;
     const sma20 = this.calculateSMA(data, 20);
     const sma50 = this.calculateSMA(data, 50);
@@ -446,8 +446,10 @@ class TechnicalAnalysisService {
         rsi,
         macd,
         currentPrice,
-		previousClose: stockData.previousClose,
-        priceChange: parseFloat(stockData.changePercent.toFixed(2))
+		previousClose: stockData.previousClose ?? null,
+        priceChange: stockData.changePercent != null
+		  ? parseFloat(stockData.changePercent.toFixed(2))
+		  : null
       },
       trend,
       patterns
@@ -457,9 +459,10 @@ class TechnicalAnalysisService {
   // Analyze stock
   async analyzeStock(symbol) {
     const stockDataService = require('./stockDataService');
-    const historicalData = await stockDataService.getHistoricalData(symbol, 90);
+    const [historicalData, stockData] = await Promise.all([stockDataService.getHistoricalData(symbol, 90)
+		stockDataService.getStockQuote(symbol)]);
     
-    return this.generateSignal(historicalData);
+    return this.generateSignal(historicalData, stockData);
   }
 }
 
