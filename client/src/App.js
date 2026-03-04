@@ -740,10 +740,11 @@ function App() {
                                  < td className = "text-right py-3 px-4" >
                                      < div className = "flex flex-col items-end" >
                                      < span className = "font-medium" > ₹ {
-                                    stock.indicators?.currentPrice?.toFixed(2)
+									Stock.indicators?.currentPrice !=null ?	 
+									 '₹{stock.indicators?.currentPrice?.toFixed(2)}' : '-'
                                 }
                                  <  / span > {
-                                stock.indicators?.priceChange !== undefined && (
+                                stock.indicators?.priceChange != null ? (
                                      < span className = {
 `text-xs font-semibold ${
                                         stock.indicators.priceChange >= 0 ? 'text-green-600' : 'text-red-600'
@@ -755,7 +756,9 @@ function App() {
                                     Math.abs(stock.indicators.priceChange).toFixed(2)
                                 }
                                      %
-                                     <  / span > )
+                                     <  / span > ) : (
+									 <span className="text-xs text-gray-400">N/A</span> )
+									 
                             }
                                  <  / div >
                                  <  / td >
