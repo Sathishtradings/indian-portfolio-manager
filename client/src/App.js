@@ -740,7 +740,7 @@ function App() {
                                  < td className = "text-right py-3 px-4" >
                                      < div className = "flex flex-col items-end" >
                                      < span className = "font-medium" > ₹ {
-									Stock.indicators?.currentPrice !=null ?	 
+									stock.indicators?.currentPrice !=null ?	 
 									 '₹{stock.indicators?.currentPrice?.toFixed(2)}' : '-'
                                 }
                                  <  / span > {
