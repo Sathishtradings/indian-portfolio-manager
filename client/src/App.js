@@ -55,6 +55,8 @@ function App() {
     const [selectedStock, setSelectedStock] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+	const [lastScanned, setLastScanned] = useState(null);
+    const [nextRefreshIn, setNextRefreshIn] = useState(null);
 
     // New states for search and filter
     const [searchSymbol, setSearchSymbol] = useState('');
@@ -115,7 +117,61 @@ function App() {
             console.error('Failed to load portfolio:', error);
         }
     };
+    
+	useEffect(() => {
+    let intervalId;
 
+    if (isLoggedIn && activeTab === 'scanner' && scanResults.length > 0 && lastScanned) {
+        console.log('🔄 Auto-refresh enabled for scanner');
+
+        intervalId = setInterval(() => {
+            const now = new Date().toLocaleTimeString('en-IN');
+            console.log(`🔄 Auto-refreshing scan at ${now}...`);
+            handleScan(); // re-run the last scan
+        }, 5 * 60 * 1000); // every 5 minutes
+    }
+
+    return () => {
+        if (intervalId) clearInterval(intervalId);
+    };
+}, [isLoggedIn, activeTab, scanResults.length, lastScanned]);
+
+
+// STEP 4: Add countdown timer useEffect
+useEffect(() => {
+    let countdownId;
+
+    if (nextRefreshIn !== null && scanResults.length > 0) {
+        countdownId = setInterval(() => {
+            setNextRefreshIn(prev => {
+                if (prev <= 1) return 300; // reset to 5 mins
+                return prev - 1;
+            });
+        }, 1000);
+    }
+
+    return () => {
+        if (countdownId) clearInterval(countdownId);
+    };
+}, [nextRefreshIn, scanResults.length]);
+
+	seEffect(() => {
+    if (!isLoggedIn) {
+        document.title = 'BuildnRise | Login';
+        return;
+    }
+
+    const titles = {
+        scanner:   'BuildnRise | Stock Scanner',
+        portfolio: 'BuildnRise | My Portfolio',
+        analytics: 'BuildnRise | Analytics'
+    };
+
+    document.title = titles[activeTab] || 'BuildnRise Portfolio Manager';
+
+}, [activeTab, isLoggedIn]);
+	
+	
     const handleAuth = async(e) => {
         e.preventDefault();
         setError('');
@@ -262,7 +318,9 @@ function App() {
     const handleScan = async() => {
         setLoading(true);
         setError('');
-
+        setLastScanned(new Date());
+        setNextRefreshIn(300);
+		
         const stocksToScan = STOCK_CATEGORIES[selectedCategory];
 
         try {
@@ -707,6 +765,19 @@ function App() {
                 {
                 scanResults.length > 0 && (
                      < div className = "mt-6" >
+					    lastScanned && scanResults.length > 0 && (
+    <div className="flex items-center justify-between mb-3 px-1">
+        <span className="text-xs text-gray-500">
+            Last updated: {lastScanned.toLocaleTimeString('en-IN', {
+                hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
+            })}
+        </span>
+        <span className="text-xs font-medium text-orange-600 bg-orange-50 px-2 py-1 rounded-full">
+            🔄 Refreshing in {Math.floor(nextRefreshIn / 60)}:{String(nextRefreshIn % 60).padStart(2, '0')}
+        </span>
+    </div>
+)}
+					    
                          < h3 className = "text-lg font-semibold text-gray-800 mb-4" >
                         Scan Results({
                             scanResults.length
