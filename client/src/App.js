@@ -341,7 +341,7 @@ useEffect(() => {
         } finally {
             setLoading(false);
         }
-    }[selectedCategory]);
+    },[selectedCategory]);
 
     const handleSearchStock = async() => {
         if (!searchSymbol.trim()) {
@@ -766,7 +766,7 @@ useEffect(() => {
                 {
                 scanResults.length > 0 && (
                      < div className = "mt-6" >
-					    lastScanned && scanResults.length > 0 && (
+					 {lastScanned && scanResults.length > 0 && (
     <div className="flex items-center justify-between mb-3 px-1">
         <span className="text-xs text-gray-500">
             Last updated: {lastScanned.toLocaleTimeString('en-IN', {
