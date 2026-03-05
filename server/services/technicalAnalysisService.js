@@ -459,11 +459,13 @@ class TechnicalAnalysisService {
   // Analyze stock
   async analyzeStock(symbol) {
     const stockDataService = require('./stockDataService');
-    const [historicalData, stockData] = await Promise.all([stockDataService.getHistoricalData(symbol, 90),
-		stockDataService.getStockQuote(symbol)]);
-    
+
+    // ✅ Sequential instead of parallel — avoids hitting Yahoo twice at once
+    const historicalData = await stockDataService.getHistoricalData(symbol, 90);
+    await new Promise(resolve => setTimeout(resolve, 200)); // small gap between calls
+    const stockData = await stockDataService.getStockQuote(symbol);
+
     return this.generateSignal(historicalData, stockData);
-  }
 }
 
 module.exports = new TechnicalAnalysisService();
