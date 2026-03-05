@@ -119,60 +119,7 @@ function App() {
         }
     };
     
-	useEffect(() => {
-    let intervalId;
-
-    if (isLoggedIn && activeTab === 'scanner' && scanResults.length > 0 && lastScanned) {
-        console.log('🔄 Auto-refresh enabled for scanner');
-
-        intervalId = setInterval(() => {
-            const now = new Date().toLocaleTimeString('en-IN');
-            console.log(`🔄 Auto-refreshing scan at ${now}...`);
-            handleScan(); // re-run the last scan
-        }, 5 * 60 * 1000); // every 5 minutes
-    }
-
-    return () => {
-        if (intervalId) clearInterval(intervalId);
-    };
-}, [isLoggedIn, activeTab, scanResults.length, lastScanned, handleScan]);
-
-
-// STEP 4: Add countdown timer useEffect
-useEffect(() => {
-    let countdownId;
-
-    if (nextRefreshIn !== null && scanResults.length > 0) {
-        countdownId = setInterval(() => {
-            setNextRefreshIn(prev => {
-                if (prev <= 1) return 300; // reset to 5 mins
-                return prev - 1;
-            });
-        }, 1000);
-    }
-
-    return () => {
-        if (countdownId) clearInterval(countdownId);
-    };
-}, [nextRefreshIn, scanResults.length]);
-
-	useEffect(() => {
-    if (!isLoggedIn) {
-        document.title = 'BuildnRise | Login';
-        return;
-    }
-
-    const titles = {
-        scanner:   'BuildnRise | Stock Scanner',
-        portfolio: 'BuildnRise | My Portfolio',
-        analytics: 'BuildnRise | Analytics'
-    };
-
-    document.title = titles[activeTab] || 'BuildnRise Portfolio Manager';
-
-}, [activeTab, isLoggedIn]);
-	
-	
+		
     const handleAuth = async(e) => {
         e.preventDefault();
         setError('');
@@ -342,7 +289,9 @@ useEffect(() => {
             setLoading(false);
         }
     },[selectedCategory]);
-
+    
+    
+	
     const handleSearchStock = async() => {
         if (!searchSymbol.trim()) {
             setError('Please enter a stock symbol');
@@ -366,7 +315,60 @@ useEffect(() => {
             setLoading(false);
         }
     };
+    
+	useEffect(() => {
+    let intervalId;
 
+    if (isLoggedIn && activeTab === 'scanner' && scanResults.length > 0 && lastScanned) {
+        console.log('🔄 Auto-refresh enabled for scanner');
+
+        intervalId = setInterval(() => {
+            const now = new Date().toLocaleTimeString('en-IN');
+            console.log(`🔄 Auto-refreshing scan at ${now}...`);
+            handleScan(); // re-run the last scan
+        }, 5 * 60 * 1000); // every 5 minutes
+    }
+
+    return () => {
+        if (intervalId) clearInterval(intervalId);
+    };
+}, [isLoggedIn, activeTab, scanResults.length, lastScanned, handleScan]);
+
+
+// STEP 4: Add countdown timer useEffect
+useEffect(() => {
+    let countdownId;
+
+    if (nextRefreshIn !== null && scanResults.length > 0) {
+        countdownId = setInterval(() => {
+            setNextRefreshIn(prev => {
+                if (prev <= 1) return 300; // reset to 5 mins
+                return prev - 1;
+            });
+        }, 1000);
+    }
+
+    return () => {
+        if (countdownId) clearInterval(countdownId);
+    };
+}, [nextRefreshIn, scanResults.length]);
+
+	useEffect(() => {
+    if (!isLoggedIn) {
+        document.title = 'BuildnRise | Login';
+        return;
+    }
+
+    const titles = {
+        scanner:   'BuildnRise | Stock Scanner',
+        portfolio: 'BuildnRise | My Portfolio',
+        analytics: 'BuildnRise | Analytics'
+    };
+
+    document.title = titles[activeTab] || 'BuildnRise Portfolio Manager';
+
+}, [activeTab, isLoggedIn]);
+	
     const handleViewDetails = async(symbol) => {
         setLoading(true);
         setError('');
