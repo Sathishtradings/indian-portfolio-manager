@@ -45,7 +45,7 @@ export const authAPI = {
 
 // Stock API
 export const stockAPI = {
-  getQuote: (symbol) => api.get(`/stocks/quote/${symbol}`),
+  getQuote: (symbol) => api.post(`/stocks/quote/${symbol}`),
   getHistorical: (symbol, days = 90) => api.get(`/stocks/historical/${symbol}?days=${days}`),
   getAnalysis: (symbol) => api.get(`/stocks/analysis/${symbol}`),
   scan: (symbols) => api.post('/stocks/scan', { symbols })
