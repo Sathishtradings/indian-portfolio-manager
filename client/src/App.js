@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { TrendingUp, TrendingDown, Search, Bell, Settings, LogOut, PieChart, Activity, DollarSign, AlertCircle, Plus, X, Filter } from 'lucide-react';
 import { authAPI, stockAPI, portfolioAPI } from './services/api';
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
 
 // Complete NIFTY 50 Stocks
 const NIFTY_50 = [
