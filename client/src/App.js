@@ -155,7 +155,7 @@ useEffect(() => {
     };
 }, [nextRefreshIn, scanResults.length]);
 
-	seEffect(() => {
+	useEffect(() => {
     if (!isLoggedIn) {
         document.title = 'BuildnRise | Login';
         return;
