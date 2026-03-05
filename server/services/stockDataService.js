@@ -27,9 +27,9 @@ class StockDataService {
         high: quote.high[0],
         low: quote.low[0],
         volume: quote.volume[0],
-        previousClose: meta.chartPreviousClose,
-        change: meta.regularMarketPrice - meta.chartPreviousClose,
-        changePercent: ((meta.regularMarketPrice - meta.chartPreviousClose) / meta.chartPreviousClose) * 100
+        previousClose: meta.regularMarketPreviousClose,
+        change: meta.regularMarketChange,
+        changePercent: meta.regularMarketChangePercent
       };
     } catch (error) {
       console.error(`Error fetching data for ${symbol}:`, error.message);
