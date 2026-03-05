@@ -42,30 +42,33 @@ router.get('/analysis/:symbol', auth, async (req, res) => {
 });
 
 // Scan multiple stocks
+
 router.post('/scan', auth, async (req, res) => {
-  try {
-    const { symbols } = req.body;
-    
-    if (!symbols || !Array.isArray(symbols)) {
-      return res.status(400).json({ message: 'Please provide an array of symbols' });
-    }
-    
-    const results = await Promise.all(
-      symbols.map(async (symbol) => {
-        try {
-          const analysis = await technicalAnalysisService.analyzeStock(symbol);
-          return { symbol, ...analysis };
-        } catch (error) {
-          return { symbol, error: error.message };
+    try {
+        const { symbols } = req.body;
+
+        if (!symbols || !Array.isArray(symbols)) {
+            return res.status(400).json({ message: 'Please provide an array of symbols' });
         }
-      })
-    );
-    
-    res.json(results);
-  } catch (error) {
-    console.error('Scan error:', error);
-    res.status(500).json({ message: 'Scan failed', error: error.message });
-  }
+
+        const results = [];
+
+        for (const symbol of symbols) {
+            try {
+                const analysis = await technicalAnalysisService.analyzeStock(symbol);
+                results.push({ symbol, ...analysis });
+            } catch (error) {
+                results.push({ symbol, error: error.message });
+            }
+            await new Promise(resolve => setTimeout(resolve, 300)); // ✅ delay after each stock
+        }
+
+        res.json(results);
+
+    } catch (error) {
+        console.error('Scan error:', error);
+        res.status(500).json({ message: 'Scan failed', error: error.message });
+    }
 });
 
 module.exports = router;
