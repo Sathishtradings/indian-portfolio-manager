@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { TrendingUp, TrendingDown, Search, Bell, Settings, LogOut, PieChart, Activity, DollarSign, AlertCircle, Plus, X, Filter } from 'lucide-react';
 import { authAPI, stockAPI, portfolioAPI } from './services/api';
+import { useState, useEffect, useCallback } from 'react';
 
 // Complete NIFTY 50 Stocks
 const NIFTY_50 = [
@@ -134,7 +135,7 @@ function App() {
     return () => {
         if (intervalId) clearInterval(intervalId);
     };
-}, [isLoggedIn, activeTab, scanResults.length, lastScanned]);
+}, [isLoggedIn, activeTab, scanResults.length, lastScanned, handleScan]);
 
 
 // STEP 4: Add countdown timer useEffect
@@ -315,12 +316,10 @@ useEffect(() => {
         };
     };
 
-    const handleScan = async() => {
+    const handleScan = useCallback(async() => {
         setLoading(true);
         setError('');
-        setLastScanned(new Date());
-        setNextRefreshIn(300);
-		
+        		
         const stocksToScan = STOCK_CATEGORIES[selectedCategory];
 
         try {
@@ -335,12 +334,14 @@ useEffect(() => {
                     };
                     return order[a.action] - order[b.action];
                 }));
+				setLastScanned(new Date());
+                setNextRefreshIn(300);
         } catch (error) {
             setError(error.response?.data?.message || 'Scan failed. Please try again.');
         } finally {
             setLoading(false);
         }
-    };
+    }[selectedCategory]);
 
     const handleSearchStock = async() => {
         if (!searchSymbol.trim()) {
