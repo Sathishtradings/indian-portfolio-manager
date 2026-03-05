@@ -466,6 +466,7 @@ class TechnicalAnalysisService {
     const stockData = await stockDataService.getStockQuote(symbol);
 
     return this.generateSignal(historicalData, stockData);
+   }
 }
 
 module.exports = new TechnicalAnalysisService();
