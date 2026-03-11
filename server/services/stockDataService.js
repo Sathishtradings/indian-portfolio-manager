@@ -27,6 +27,7 @@ class StockDataService {
 
             const meta = result.meta;
             if (!meta) throw new Error('No meta data returned');
+			console.log('₹{symbol} meta:', meta.regularMarketPrice, meta.regularMarketPreviousClose, meta.chartPreviousClose, meta.regularMarketChangePercent);
 
             // ✅ Safe access to quotes
             const quotesArr = result.indicators?.quote;
