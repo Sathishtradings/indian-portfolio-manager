@@ -37,10 +37,7 @@ class StockDataService {
             const currentPrice = meta.regularMarketPrice;
             if (!currentPrice) throw new Error('No current price available');
 
-            const previousClose = closes.length >= 2
-                ? closes[closes.length - 2]
-                : meta.regularMarketPreviousClose;
-
+            const previousClose = meta.regularMarketPreviousClose;
             const change = parseFloat((currentPrice - previousClose).toFixed(2));
             const changePercent = parseFloat(((change / previousClose) * 100).toFixed(2));
 
