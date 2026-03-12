@@ -401,6 +401,45 @@ useEffect(() => {
     document.title = titles[activeTab] || 'BuildnRise Portfolio Manager';
 
 }, [activeTab, isLoggedIn]);
+
+
+useEffect(() => {
+    let intervalId;
+
+    if (isLoggedIn && activeTab === 'scanner') {
+
+        // Fetch prices for all indices on load
+        const fetchAllIndexPrices = async () => {
+            for (const indexName of INDICES) {
+                try {
+                    const response = await stockAPI.getIndexAnalysis(indexName);
+                    setIndexPrices(prev => ({
+                        ...prev,
+                        [indexName]: {
+                            price: response.data.currentPrice,
+                            changePercent: response.data.changePercent
+                        }
+                    }));
+                } catch (err) {
+                    console.error(`Failed to fetch ${indexName} price:`, err.message);
+                }
+                await new Promise(resolve => setTimeout(resolve, 300)); // avoid rate limiting
+            }
+        };
+
+        fetchAllIndexPrices(); // fetch immediately on tab open
+
+        // Then refresh every 5 minutes
+        intervalId = setInterval(() => {
+            console.log('🔄 Auto-refreshing index prices...');
+            fetchAllIndexPrices();
+        }, 5 * 60 * 1000);
+    }
+
+    return () => {
+        if (intervalId) clearInterval(intervalId);
+    };
+}, [isLoggedIn, activeTab]); // ✅ runs when scanner tab is opened
 	
     const handleViewDetails = async(symbol) => {
         setLoading(true);
@@ -696,7 +735,7 @@ useEffect(() => {
 
     {/* Index Buttons */}
     <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-4">
-        //{['NIFTY 50', 'BANK NIFTY', 'NIFTY IT', 'NIFTY PHARMA', 'NIFTY AUTO', 'SENSEX'].map(idx => {
+        
         {INDICES.map(idx => {
         const priceInfo = indexPrices[idx];
         const isSelected = selectedIndex === idx;
