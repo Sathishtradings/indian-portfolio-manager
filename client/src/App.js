@@ -63,7 +63,26 @@ function App() {
     const [searchSymbol, setSearchSymbol] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('NIFTY 50');
     const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
-
+	const [selectedIndex, setSelectedIndex] = useState(null);
+	const [indexAnalysis, setIndexAnalysis] = useState(null);
+	const [indexLoading, setIndexLoading] = useState(false);
+    
+	const INDICES = ['NIFTY 50', 'BANK NIFTY', 'NIFTY IT', 'NIFTY PHARMA', 'NIFTY AUTO', 'SENSEX'];
+    
+	const handleIndexAnalysis = async (indexName) => {
+    setIndexLoading(true);
+    setSelectedIndex(indexName);
+    setIndexAnalysis(null);
+    try {
+        const response = await stockAPI.getIndexAnalysis(indexName);
+        setIndexAnalysis(response.data);
+    } catch (error) {
+        setError(`Failed to fetch ${indexName} data`);
+    } finally {
+        setIndexLoading(false);
+    }
+};
+	
     // Add position form state
     const [newPosition, setNewPosition] = useState({
         symbol: '',
@@ -655,6 +674,145 @@ useEffect(() => {
     }
          < main className = "max-w-7xl mx-auto px-4 py-6" > {
             activeTab === 'scanner' && (
+			    
+
+{/* INDEX ANALYSIS SECTION */}
+<div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+    <h2 className="text-xl font-bold text-gray-800 mb-4">Market Indices</h2>
+
+    {/* Index Buttons */}
+    <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-4">
+        {['NIFTY 50', 'BANK NIFTY', 'NIFTY IT', 'NIFTY PHARMA', 'NIFTY AUTO', 'SENSEX'].map(idx => (
+            <button
+                key={idx}
+                onClick={() => handleIndexAnalysis(idx)}
+                disabled={indexLoading}
+                className={`px-3 py-2 rounded-lg text-sm font-semibold transition ${
+                    selectedIndex === idx
+                        ? 'bg-orange-500 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-orange-50 hover:text-orange-600'
+                }`}
+            >
+                {idx}
+            </button>
+        ))}
+    </div>
+
+    {/* Loading */}
+    {indexLoading && (
+        <div className="text-center py-6 text-gray-500">
+            Analysing {selectedIndex}...
+        </div>
+    )}
+
+    {/* Index Analysis Result */}
+    {indexAnalysis && !indexLoading && (
+        <div>
+            {/* Price Header */}
+            <div className="flex items-center justify-between mb-4 p-4 bg-gray-50 rounded-lg">
+                <div>
+                    <h3 className="text-xl font-bold text-gray-800">{selectedIndex}</h3>
+                    <div className="flex items-center space-x-3 mt-1">
+                        <span className="text-2xl font-bold text-gray-800">
+                            ₹{indexAnalysis.currentPrice?.toFixed(2)}
+                        </span>
+                        <span className={`text-sm font-semibold px-2 py-1 rounded-full ${
+                            indexAnalysis.changePercent >= 0
+                                ? 'bg-green-100 text-green-600'
+                                : 'bg-red-100 text-red-600'
+                        }`}>
+                            {indexAnalysis.changePercent >= 0 ? '▲' : '▼'}
+                            {Math.abs(indexAnalysis.changePercent).toFixed(2)}%
+                            ({indexAnalysis.change >= 0 ? '+' : ''}{indexAnalysis.change?.toFixed(2)})
+                        </span>
+                    </div>
+                </div>
+
+                {/* Signal Badge */}
+                <div className={`px-6 py-3 rounded-xl text-center ${
+                    indexAnalysis.action?.includes('BUY')
+                        ? 'bg-green-100 border-2 border-green-300'
+                        : indexAnalysis.action?.includes('SELL')
+                        ? 'bg-red-100 border-2 border-red-300'
+                        : 'bg-gray-100 border-2 border-gray-300'
+                }`}>
+                    <div className={`text-xl font-bold ${
+                        indexAnalysis.action?.includes('BUY') ? 'text-green-600' :
+                        indexAnalysis.action?.includes('SELL') ? 'text-red-600' : 'text-gray-600'
+                    }`}>
+                        {indexAnalysis.action}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">{indexAnalysis.strength} Signal</div>
+                </div>
+            </div>
+
+            {/* Trend */}
+            {indexAnalysis.trend && (
+                <div className={`p-4 rounded-lg border-2 mb-4 ${
+                    indexAnalysis.trend.color === 'green' || indexAnalysis.trend.color === 'lightgreen'
+                        ? 'bg-green-50 border-green-200'
+                        : indexAnalysis.trend.color === 'red' || indexAnalysis.trend.color === 'orange'
+                        ? 'bg-red-50 border-red-200'
+                        : 'bg-gray-50 border-gray-200'
+                }`}>
+                    <div className="flex items-center justify-between">
+                        <span className={`text-lg font-bold ${
+                            indexAnalysis.trend.color === 'green' || indexAnalysis.trend.color === 'lightgreen'
+                                ? 'text-green-600' : indexAnalysis.trend.color === 'red' || indexAnalysis.trend.color === 'orange'
+                                ? 'text-red-600' : 'text-gray-600'
+                        }`}>
+                            {indexAnalysis.trend.direction}
+                        </span>
+                        <span className="text-gray-600 font-semibold">{indexAnalysis.trend.percentage}%</span>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">{indexAnalysis.trend.description}</p>
+                </div>
+            )}
+
+            {/* Technical Indicators */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                {[
+                    { label: 'SMA 20', value: `₹${indexAnalysis.indicators?.sma20?.toFixed(2)}`, color: 'blue' },
+                    { label: 'SMA 50', value: `₹${indexAnalysis.indicators?.sma50?.toFixed(2)}`, color: 'purple' },
+                    { label: 'RSI (14)', value: indexAnalysis.indicators?.rsi?.toFixed(1), color: 'green' },
+                    { label: 'MACD', value: indexAnalysis.indicators?.macd?.toFixed(2), color: 'orange' }
+                ].map(item => (
+                    <div key={item.label} className={`bg-${item.color}-50 rounded-lg p-3`}>
+                        <div className="text-xs text-gray-500 mb-1">{item.label}</div>
+                        <div className="text-lg font-bold text-gray-800">{item.value}</div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Signals List */}
+            <div className="mb-4">
+                <h4 className="font-semibold text-gray-800 mb-2">Trading Signals</h4>
+                <ul className="space-y-2">
+                    {indexAnalysis.signals?.map((signal, idx) => (
+                        <li key={idx} className="flex items-start text-sm text-gray-700">
+                            <AlertCircle className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" />
+                            <span><strong>{signal.indicator}:</strong> {signal.description}</span>
+                        </li>
+                    ))}
+                </ul>
+            </div>
+
+            {/* Price Chart */}
+            <ResponsiveContainer width="100%" height={250}>
+                <AreaChart data={indexAnalysis.historicalData?.map(d => ({
+                    date: new Date(d.date).toLocaleDateString('en-IN'),
+                    close: d.close
+                }))}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                    <YAxis />
+                    <Tooltip />
+                    <Area type="monotone" dataKey="close" stroke="#f97316" fill="#fed7aa" />
+                </AreaChart>
+            </ResponsiveContainer>
+        </div>
+    )}
+</div>
                  < div >
                  < div className = "bg-white rounded-xl shadow-sm p-6 mb-6" >
                      < div className = "mb-6" >
@@ -816,12 +974,12 @@ useEffect(() => {
         <span className="font-medium">
             ₹{stock.indicators?.currentPrice?.toFixed(2) ?? '-'}
         </span>
-        {stock.trend?.percentage != null ? (
+        {stock.indicators?.priceChange != null ? (
             <span className={`text-xs font-semibold ${
-                parseFloat(stock.trend.percentage) >= 0 ? 'text-green-600' : 'text-red-600'
+                parseFloat(stock.indicators.priceChange) >= 0 ? 'text-green-600' : 'text-red-600'
             }`}>
-                {parseFloat(stock.trend.percentage) >= 0 ? '▲' : '▼'}
-                {Math.abs(parseFloat(stock.trend.percentage)).toFixed(2)}%
+                {parseFloat(stock.indicators.priceChange) >= 0 ? '▲' : '▼'}
+                {Math.abs(parseFloat(stock.indicators.priceChange)).toFixed(2)}%
             </span>
         ) : (
             <span className="text-xs text-gray-400">N/A</span>

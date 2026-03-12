@@ -18,7 +18,7 @@ class StockDataService {
 
             const response = await axios.get(url, {
                 headers: HEADERS,
-                params: { interval: '1d', range: '5d' },
+                params: { interval: '1d', range: '2d' },
                 timeout: 10000
             });
 
@@ -27,7 +27,7 @@ class StockDataService {
 
             const meta = result.meta;
             if (!meta) throw new Error('No meta data returned');
-			console.log('₹{symbol} meta:', meta.regularMarketPrice, meta.regularMarketPreviousClose, meta.chartPreviousClose, meta.regularMarketChangePercent);
+			//console.log('₹{symbol} meta:', meta.regularMarketPrice, meta.regularMarketPreviousClose, meta.chartPreviousClose, meta.regularMarketChangePercent);
 
             // ✅ Safe access to quotes
             const quotesArr = result.indicators?.quote;
@@ -59,6 +59,80 @@ class StockDataService {
             console.error(`❌ Error fetching ${symbol}:`, error.message);
             throw new Error(`Failed to fetch stock data for ${symbol}`);
         }
+    const INDEX_SYMBOLS = {
+    'NIFTY 50':    '^NSEI',
+    'BANK NIFTY':  '^NSEBANK',
+    'NIFTY IT':    '^CNXIT',
+    'NIFTY PHARMA': '^CNXPHARMA',
+    'NIFTY AUTO':  '^CNXAUTO',
+    'SENSEX':      '^BSESN'
+};
+
+async getIndexData(indexName) {
+    try {
+        const yahooSymbol = INDEX_SYMBOLS[indexName];
+        if (!yahooSymbol) throw new Error(`Unknown index: ${indexName}`);
+
+        // Fetch current quote
+        const quoteUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${yahooSymbol}`;
+        const quoteResponse = await axios.get(quoteUrl, {
+            headers: HEADERS,
+            params: { interval: '1d', range: '2d' },
+            timeout: 10000
+        });
+
+        const quoteResult = quoteResponse.data.chart.result?.[0];
+        if (!quoteResult) throw new Error('No quote data');
+
+        const meta = quoteResult.meta;
+        const currentPrice = meta.regularMarketPrice;
+        const previousClose = meta.chartPreviousClose;
+        const change = parseFloat((currentPrice - previousClose).toFixed(2));
+        const changePercent = parseFloat(((change / previousClose) * 100).toFixed(2));
+
+        // Fetch 90 days historical for technical analysis
+        await new Promise(resolve => setTimeout(resolve, 200));
+        const endDate = Math.floor(Date.now() / 1000);
+        const startDate = endDate - (90 * 24 * 60 * 60);
+
+        const histResponse = await axios.get(quoteUrl, {
+            headers: HEADERS,
+            params: { period1: startDate, period2: endDate, interval: '1d' },
+            timeout: 10000
+        });
+
+        const histResult = histResponse.data.chart.result?.[0];
+        if (!histResult) throw new Error('No historical data');
+
+        const timestamps = histResult.timestamp || [];
+        const quotes = histResult.indicators?.quote?.[0];
+        if (!quotes) throw new Error('No quotes in historical data');
+
+        const historicalData = timestamps.map((ts, i) => ({
+            date: new Date(ts * 1000),
+            open: quotes.open?.[i] ?? null,
+            high: quotes.high?.[i] ?? null,
+            low: quotes.low?.[i] ?? null,
+            close: quotes.close?.[i] ?? null,
+            volume: quotes.volume?.[i] ?? null
+        })).filter(d => d.close != null);
+
+        return {
+            name: indexName,
+            symbol: yahooSymbol,
+            currentPrice,
+            previousClose,
+            change,
+            changePercent,
+            historicalData
+        };
+
+    } catch (error) {
+        console.error(`❌ Error fetching index ${indexName}:`, error.message);
+        throw new Error(`Failed to fetch index data for ${indexName}`);
+    }
+}
+		
     }
 
     async getHistoricalData(symbol, days = 90) {

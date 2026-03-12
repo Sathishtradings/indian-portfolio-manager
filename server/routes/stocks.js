@@ -71,4 +71,37 @@ router.post('/scan', auth, async (req, res) => {
     }
 });
 
+router.get('/index/:name', auth, async (req, res) => {
+    try {
+        const indexName = decodeURIComponent(req.params.name);
+        const indexData = await stockDataService.getIndexData(indexName);
+
+        // Run technical analysis on historical data
+        const analysis = technicalAnalysisService.generateSignal(
+            indexData.historicalData,
+            { previousClose: indexData.previousClose, changePercent: indexData.changePercent }
+        );
+
+        res.json({
+            name: indexName,
+            currentPrice: indexData.currentPrice,
+            change: indexData.change,
+            changePercent: indexData.changePercent,
+            historicalData: indexData.historicalData.map(d => ({
+                date: d.date,
+                close: d.close,
+                open: d.open,
+                high: d.high,
+                low: d.low,
+                volume: d.volume
+            })),
+            ...analysis
+        });
+
+    } catch (error) {
+        console.error('Index analysis error:', error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
 module.exports = router;

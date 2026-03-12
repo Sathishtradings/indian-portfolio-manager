@@ -9,6 +9,9 @@ const api = axios.create({
   }
 });
 
+getIndexAnalysis: (indexName) => api.get(`/stocks/index/${encodeURIComponent(indexName)}`),
+
+
 // Add token to requests automatically
 api.interceptors.request.use(
   (config) => {
