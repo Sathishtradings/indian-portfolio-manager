@@ -9,9 +9,6 @@ const api = axios.create({
   }
 });
 
-getIndexAnalysis: (indexName) => api.get(`/stocks/index/${encodeURIComponent(indexName)}`),
-
-
 // Add token to requests automatically
 api.interceptors.request.use(
   (config) => {
@@ -21,9 +18,7 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 // Handle response errors
@@ -31,7 +26,6 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/';
@@ -48,10 +42,11 @@ export const authAPI = {
 
 // Stock API
 export const stockAPI = {
-  getQuote: (symbol) => api.post(`/stocks/quote/${symbol}`),
+  getQuote: (symbol) => api.get(`/stocks/quote/${symbol}`),
   getHistorical: (symbol, days = 90) => api.get(`/stocks/historical/${symbol}?days=${days}`),
   getAnalysis: (symbol) => api.get(`/stocks/analysis/${symbol}`),
-  scan: (symbols) => api.post('/stocks/scan', { symbols })
+  scan: (symbols) => api.post('/stocks/scan', { symbols }),
+  getIndexAnalysis: (indexName) => api.get(`/stocks/index/${encodeURIComponent(indexName)}`) // ✅ inside stockAPI
 };
 
 // Portfolio API
