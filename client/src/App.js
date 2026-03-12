@@ -67,16 +67,29 @@ function App() {
 	const [selectedIndex, setSelectedIndex] = useState(null);
 	const [indexAnalysis, setIndexAnalysis] = useState(null);
 	const [indexLoading, setIndexLoading] = useState(false);
-    
+    const [indexPrices, setIndexPrices] = useState({});
 	
     
 	const handleIndexAnalysis = async (indexName) => {
+	if (selectedIndex === indexName && indexAnalysis){
+        setSelectedIndex(null);
+        setIndexAnalysis(null);
+        return;
+    }		
     setIndexLoading(true);
     setSelectedIndex(indexName);
     setIndexAnalysis(null);
     try {
         const response = await stockAPI.getIndexAnalysis(indexName);
         setIndexAnalysis(response.data);
+		setIndexPrices(prev => ({
+			...prev,
+		[indexName]: {
+			price: response.data.currentPrice,
+			changePercent: response.data.changePercent
+		}
+		}));		
+		
     } catch (error) {
         setError(`Failed to fetch ${indexName} data`);
     } finally {
@@ -239,7 +252,7 @@ function App() {
 
             // Show success message
             if (existingStock) {
-                alert(`Successfully added ${newPosition.quantity} more shares to ${newPosition.symbol}`);
+                alert(`Successfully added ₹{newPosition.quantity} more shares to ${newPosition.symbol}`);
             }
         } catch (error) {
             setError(error.response?.data?.message || 'Failed to add position');
@@ -249,7 +262,7 @@ function App() {
     };
 
     const handleRemovePosition = async(symbol) => {
-        if (!window.confirm(`Remove ${symbol} from portfolio?`))
+        if (!window.confirm(`Remove ₹{symbol} from portfolio?`))
             return;
 
         setLoading(true);
@@ -564,7 +577,7 @@ useEffect(() => {
              < TrendingUp className = "w-6 h-6 text-white" /  >
              <  / div >
              < div >
-             < h1 className = "text-xl font-bold text-gray-800" > BuildnRise Portfolio Manager <  / h1 >
+             < h1 className = "text-xl font-bold text-gray-800" > BuildnRise Portfolio <  / h1 >
              < p className = "text-sm text-gray-500" > Welcome, {
         username
     }
@@ -684,20 +697,41 @@ useEffect(() => {
     {/* Index Buttons */}
     <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-4">
         {['NIFTY 50', 'BANK NIFTY', 'NIFTY IT', 'NIFTY PHARMA', 'NIFTY AUTO', 'SENSEX'].map(idx => (
+            const priceInfo = indexPrices[idx];
+        const isSelected = selectedIndex === idx;
+        return (
             <button
                 key={idx}
                 onClick={() => handleIndexAnalysis(idx)}
-                disabled={indexLoading}
-                className={`px-3 py-2 rounded-lg text-sm font-semibold transition ${
-                    selectedIndex === idx
+                disabled={indexLoading && selectedIndex !== idx}
+                className={`px-3 py-2 rounded-lg text-sm font-semibold transition text-left ${
+                    isSelected
                         ? 'bg-orange-500 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-orange-50 hover:text-orange-600'
                 }`}
             >
-                {idx}
+                <div className="font-semibold">{idx}</div>
+                {priceInfo ? (
+                    <div className={`text-xs mt-0.5 ${
+                        isSelected
+                            ? 'text-white'
+                            : priceInfo.changePercent >= 0 ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                        ₹{priceInfo.price?.toFixed(2)}
+                        <span className="ml-1">
+                            {priceInfo.changePercent >= 0 ? '▲' : '▼'}
+                            {Math.abs(priceInfo.changePercent).toFixed(2)}%
+                        </span>
+                    </div>
+                ) : (
+                    <div className="text-xs mt-0.5 text-gray-400">
+                        {indexLoading && isSelected ? 'Loading...' : 'Tap to load'}
+                    </div>
+                )}
             </button>
-        ))}
-    </div>
+        );
+    })}
+</div>
 
     {/* Loading */}
     {indexLoading && (
