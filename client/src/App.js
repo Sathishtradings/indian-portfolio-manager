@@ -29,7 +29,7 @@ const STOCK_CATEGORIES = {
     'Metals': ['TATASTEEL', 'HINDALCO', 'JSWSTEEL', 'VEDL', 'COALINDIA', 'NMDC', 'SAIL', 'HINDZINC', 'NATIONALUM', 'JINDALSTEL'],
     'FMCG': ['HINDUNILVR', 'ITC', 'NESTLEIND', 'BRITANNIA', 'DABUR', 'MARICO', 'GODREJCP', 'COLPAL', 'TATACONSUM', 'EMAMILTD']
 };
-//const INDICES = ['NIFTY 50', 'BANK NIFTY', 'NIFTY IT', 'NIFTY PHARMA', 'NIFTY AUTO', 'SENSEX'];
+const INDICES = ['NIFTY 50', 'BANK NIFTY', 'NIFTY IT', 'NIFTY PHARMA', 'NIFTY AUTO', 'SENSEX'];
 
 // Format Indian currency
 const formatINR = (amount) => {
@@ -696,8 +696,9 @@ useEffect(() => {
 
     {/* Index Buttons */}
     <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-4">
-        {['NIFTY 50', 'BANK NIFTY', 'NIFTY IT', 'NIFTY PHARMA', 'NIFTY AUTO', 'SENSEX'].map(idx => (
-            const priceInfo = indexPrices[idx];
+        //{['NIFTY 50', 'BANK NIFTY', 'NIFTY IT', 'NIFTY PHARMA', 'NIFTY AUTO', 'SENSEX'].map(idx => {
+        {INDICES.map(idx => {
+		const priceInfo = indexPrices[idx];
         const isSelected = selectedIndex === idx;
         return (
             <button
