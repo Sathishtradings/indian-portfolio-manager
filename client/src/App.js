@@ -29,6 +29,7 @@ const STOCK_CATEGORIES = {
     'Metals': ['TATASTEEL', 'HINDALCO', 'JSWSTEEL', 'VEDL', 'COALINDIA', 'NMDC', 'SAIL', 'HINDZINC', 'NATIONALUM', 'JINDALSTEL'],
     'FMCG': ['HINDUNILVR', 'ITC', 'NESTLEIND', 'BRITANNIA', 'DABUR', 'MARICO', 'GODREJCP', 'COLPAL', 'TATACONSUM', 'EMAMILTD']
 };
+const INDICES = ['NIFTY 50', 'BANK NIFTY', 'NIFTY IT', 'NIFTY PHARMA', 'NIFTY AUTO', 'SENSEX'];
 
 // Format Indian currency
 const formatINR = (amount) => {
@@ -67,7 +68,7 @@ function App() {
 	const [indexAnalysis, setIndexAnalysis] = useState(null);
 	const [indexLoading, setIndexLoading] = useState(false);
     
-	const INDICES = ['NIFTY 50', 'BANK NIFTY', 'NIFTY IT', 'NIFTY PHARMA', 'NIFTY AUTO', 'SENSEX'];
+	
     
 	const handleIndexAnalysis = async (indexName) => {
     setIndexLoading(true);
