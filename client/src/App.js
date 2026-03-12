@@ -674,7 +674,7 @@ useEffect(() => {
     }
          < main className = "max-w-7xl mx-auto px-4 py-6" > {
             activeTab === 'scanner' && (
-			    
+	< div >		    
 
 {/* INDEX ANALYSIS SECTION */}
 <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
@@ -813,7 +813,7 @@ useEffect(() => {
         </div>
     )}
 </div>
-                 < div >
+                 
                  < div className = "bg-white rounded-xl shadow-sm p-6 mb-6" >
                      < div className = "mb-6" >
                      < h2 className = "text-2xl font-bold text-gray-800 mb-1" > Stock Scanner <  / h2 >
