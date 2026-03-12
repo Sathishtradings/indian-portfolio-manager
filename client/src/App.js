@@ -698,7 +698,7 @@ useEffect(() => {
     <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-4">
         //{['NIFTY 50', 'BANK NIFTY', 'NIFTY IT', 'NIFTY PHARMA', 'NIFTY AUTO', 'SENSEX'].map(idx => {
         {INDICES.map(idx => {
-		const priceInfo = indexPrices[idx];
+        const priceInfo = indexPrices[idx];
         const isSelected = selectedIndex === idx;
         return (
             <button
