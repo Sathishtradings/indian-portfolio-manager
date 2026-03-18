@@ -38,8 +38,8 @@ api.interceptors.response.use(
 export const authAPI = {
   login: (credentials) => api.post('/auth/login', credentials),
   register: (userData) => api.post('/auth/register', userData),
-  forgotPassword: (email) => api.post('/auth/forgotPassword', {email}),
-  resetPassword: (email, token, newPassword) => api.post('/auth/reset-Password', {email, token, newPassword})
+  forgotPassword: (email) => api.post('/auth/forgot-password', {email}),
+  resetPassword: (email, token, newPassword) => api.post('/auth/reset-password', {email, token, newPassword})
 };
 
 // Stock API
