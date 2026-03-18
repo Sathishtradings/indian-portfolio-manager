@@ -26,7 +26,7 @@ const userSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now
-  }
+  },
   
   resetToken: { type: String, default: null },
   resetExpiry: { type: Number, default: null }
