@@ -434,6 +434,18 @@ useEffect(() => {
 
 }, [activeTab, isLoggedIn]);
 
+useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    const emailParam = params.get('email');
+    if (token && emailParam) {
+        setForgotEmail(decodeURIComponent(emailParam));
+        setResetToken(token);
+        setForgotStep('reset');
+        window.history.replaceState({}, document.title, '/');
+    }
+}, []);
+
 
 useEffect(() => {
     let intervalId;
@@ -473,18 +485,7 @@ useEffect(() => {
         if (intervalId) clearInterval(intervalId);
     };
 	
-	useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get('token');
-    const emailParam = params.get('email');
-    if (token && emailParam) {
-        setForgotEmail(decodeURIComponent(emailParam));
-        setResetToken(token);
-        setForgotStep('reset');
-        window.history.replaceState({}, document.title, '/');
-    }
-}, []);
-
+	
 }, [isLoggedIn, activeTab]); // ✅ runs when scanner tab is opened
 	
     const handleViewDetails = async(symbol) => {
