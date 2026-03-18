@@ -27,6 +27,10 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   }
+  
+  resetToken: { type: String, default: null },
+  resetExpiry: { type: Number, default: null }
+  
 });
 
 // Method to compare password

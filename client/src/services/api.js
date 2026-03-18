@@ -37,7 +37,9 @@ api.interceptors.response.use(
 // Auth API
 export const authAPI = {
   login: (credentials) => api.post('/auth/login', credentials),
-  register: (userData) => api.post('/auth/register', userData)
+  register: (userData) => api.post('/auth/register', userData),
+  forgotPassword: (email) => api.post('/auth/forgotPassword', {email}),
+  resetPassword: (email, token, newPassword) => api.post('/auth/reset-Password', {email, token, newPassword})
 };
 
 // Stock API

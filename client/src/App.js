@@ -86,6 +86,7 @@ function App() {
 			...prev,
 		[indexName]: {
 			price: response.data.currentPrice,
+			change: response.data.change,
 			changePercent: response.data.changePercent
 		}
 		}));		
@@ -417,6 +418,7 @@ useEffect(() => {
                         ...prev,
                         [indexName]: {
                             price: response.data.currentPrice,
+							change: response.data.change,
                             changePercent: response.data.changePercent
                         }
                     }));
@@ -433,7 +435,7 @@ useEffect(() => {
         intervalId = setInterval(() => {
             console.log('🔄 Auto-refreshing index prices...');
             fetchAllIndexPrices();
-        }, 5 * 60 * 1000);
+        }, 3 * 60 * 1000);
     }
 
     return () => {
@@ -759,8 +761,9 @@ useEffect(() => {
                     }`}>
                         ₹{priceInfo.price?.toFixed(2)}
                         <span className="ml-1">
-                            {priceInfo.changePercent >= 0 ? '▲' : '▼'}
-                            {Math.abs(priceInfo.changePercent).toFixed(2)}%
+						    {priceInfo.change >= 0 ? '+' : ''}{priceInfo.change?.toFixed(2)}
+                            ({priceInfo.changePercent >= 0 ? '▲' : '▼'}
+                            {Math.abs(priceInfo.changePercent).toFixed(2)}%)
                         </span>
                     </div>
                 ) : (
@@ -1051,10 +1054,19 @@ useEffect(() => {
         </span>
         {stock.indicators?.priceChange != null ? (
             <span className={`text-xs font-semibold ${
-                parseFloat(stock.indicators.priceChange) >= 0 ? 'text-green-600' : 'text-red-600'
+                stock.indicators.priceChange >= 0 ? 'text-green-600' : 'text-red-600'
             }`}>
-                {parseFloat(stock.indicators.priceChange) >= 0 ? '▲' : '▼'}
-                {Math.abs(parseFloat(stock.indicators.priceChange)).toFixed(2)}%
+                {/* change amount */}
+                {stock.indicators.previousClose != null && (
+                    <span>
+                        {stock.indicators.priceChange >= 0 ? '+' : ''}
+                        {((stock.indicators.priceChange / 100) * stock.indicators.previousClose).toFixed(2)}
+                        {' '}
+                    </span>
+                )}
+                {/* percentage */}
+                ({stock.indicators.priceChange >= 0 ? '▲' : '▼'}
+                {Math.abs(stock.indicators.priceChange).toFixed(2)}%)
             </span>
         ) : (
             <span className="text-xs text-gray-400">N/A</span>
