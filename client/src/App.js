@@ -68,7 +68,12 @@ function App() {
 	const [indexAnalysis, setIndexAnalysis] = useState(null);
 	const [indexLoading, setIndexLoading] = useState(false);
     const [indexPrices, setIndexPrices] = useState({});
-	
+	const [forgotStep, setForgotStep] = useState(null); // null | 'forgot' | 'reset'
+const [forgotEmail, setForgotEmail] = useState('');
+const [newPassword, setNewPassword] = useState('');
+const [confirmPassword, setConfirmPassword] = useState('');
+const [resetToken, setResetToken] = useState('');
+const [resetSuccess, setResetSuccess] = useState('');
     
 	const handleIndexAnalysis = async (indexName) => {
 	if (selectedIndex === indexName && indexAnalysis){
@@ -153,7 +158,33 @@ function App() {
         }
     };
     
-		
+	const handleForgotPassword = async () => {
+    if (!forgotEmail) { setError('Please enter your email'); return; }
+    setLoading(true); setError('');
+    try {
+        await authAPI.forgotPassword(forgotEmail);
+        setResetSuccess('Reset link sent! Check your email inbox.');
+    } catch (err) {
+        setError(err.response?.data?.message || 'Failed to send reset link');
+    } finally { setLoading(false); }
+};
+
+const handleResetPassword = async () => {
+    if (!newPassword || newPassword.length < 6) { setError('Password must be at least 6 characters'); return; }
+    if (newPassword !== confirmPassword) { setError('Passwords do not match'); return; }
+    setLoading(true); setError('');
+    try {
+        await authAPI.resetPassword(forgotEmail, resetToken, newPassword);
+        setForgotStep(null);
+        setNewPassword(''); setConfirmPassword(''); setResetToken(''); setForgotEmail('');
+        setResetSuccess('Password reset successful! Please login.');
+    } catch (err) {
+        setError(err.response?.data?.message || 'Reset failed');
+    } finally { setLoading(false); }
+};
+
+    
+	
     const handleAuth = async(e) => {
         e.preventDefault();
         setError('');
@@ -441,6 +472,19 @@ useEffect(() => {
     return () => {
         if (intervalId) clearInterval(intervalId);
     };
+	
+	useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    const emailParam = params.get('email');
+    if (token && emailParam) {
+        setForgotEmail(decodeURIComponent(emailParam));
+        setResetToken(token);
+        setForgotStep('reset');
+        window.history.replaceState({}, document.title, '/');
+    }
+}, []);
+
 }, [isLoggedIn, activeTab]); // ✅ runs when scanner tab is opened
 	
     const handleViewDetails = async(symbol) => {
@@ -475,134 +519,141 @@ useEffect(() => {
     };
 
     if (!isLoggedIn) {
-        return (
-             < div className = "min-h-screen bg-gradient-to-br from-orange-50 via-white to-green-50 flex items-center justify-center p-4" >
-                 < div className = "bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md" >
-                 < div className = "text-center mb-8" >
-                 < div className = "inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-orange-500 to-green-600 rounded-full mb-4" >
-                 < TrendingUp className = "w-8 h-8 text-white" /  >
-                 <  / div >
-                 < h1 className = "text-3xl font-bold text-gray-800 mb-2" > Portfolio Manager <  / h1 >
-                 < p className = "text-gray-600" > Indian Stock Market Platform <  / p >
-                 <  / div >
-                {
-                error && (
-                     < div className = "bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm" > {
-                        error
-                    }
-                     <  / div > )
-            }
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-green-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+                <div className="text-center mb-8">
+                    <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-orange-500 to-green-600 rounded-full mb-4">
+                        <TrendingUp className="w-8 h-8 text-white" />
+                    </div>
+                    <h1 className="text-3xl font-bold text-gray-800 mb-2">
+                        {forgotStep === 'forgot' ? 'Forgot Password' :
+                         forgotStep === 'reset'  ? 'Set New Password' :
+                         'Portfolio Manager'}
+                    </h1>
+                    <p className="text-gray-600">
+                        {forgotStep === 'forgot' ? "We'll send a reset link to your email" :
+                         forgotStep === 'reset'  ? 'Enter your new password below' :
+                         'Indian Stock Market Platform'}
+                    </p>
+                </div>
 
-             < div > {
-            isRegistering && (
-                 < div className = "mb-4" >
-                     < label className = "block text-gray-700 text-sm font-semibold mb-2" >
-                    Full Name *
-                     <  / label >
-                     < input
-                    type = "text"
-                    value = {
-                    name
-                }
-                onChange = {
-                    (e) => setName(e.target.value)
-                }
-                className = "w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    placeholder = "Enter your name"
-                    />
-                                  </div > )
-        }
+                {/* Success message */}
+                {resetSuccess && (
+                    <div className="bg-green-50 text-green-700 p-3 rounded-lg mb-4 text-sm font-medium">
+                        ✅ {resetSuccess}
+                    </div>
+                )}
 
-             < div className = "mb-4" >
-                 < label className = "block text-gray-700 text-sm font-semibold mb-2" >
-                Email *
-                 <  / label >
-                 < input
-                type = "email"
-                value = {
-                email
-            }
-            onChange = {
-                (e) => setEmail(e.target.value)
-            }
-            className = "w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                placeholder = "Enter email"
-                />
-                            </div >
+                {/* Error message */}
+                {error && (
+                    <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm">{error}</div>
+                )}
 
-                 < div className = "mb-4" >
-                 < label className = "block text-gray-700 text-sm font-semibold mb-2" >
-                Password *
-                 <  / label >
-                 < input
-                type = "password"
-                value = {
-                password
-            }
-            onChange = {
-                (e) => setPassword(e.target.value)
-            }
-            className = "w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                placeholder = "Enter password"
-                onKeyPress = {
-                (e) => e.key === 'Enter' && handleAuth(e)
-            }
-            />
-                        </div >
-            {
-            isRegistering && (
-                 < div className = "mb-6" >
-                     < label className = "block text-gray-700 text-sm font-semibold mb-2" >
-                    Mobile(Optional)
-                     <  / label >
-                     < input
-                    type = "tel"
-                    value = {
-                    mobile
-                }
-                onChange = {
-                    (e) => setMobile(e.target.value)
-                }
-                className = "w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    placeholder = "Enter mobile number"
-                    />
-                                  </div > )
-        }
+                {/* Forgot Password — enter email */}
+                {forgotStep === 'forgot' && (
+                    <div>
+                        <label className="block text-gray-700 text-sm font-semibold mb-2">Registered Email *</label>
+                        <input
+                            type="email"
+                            value={forgotEmail}
+                            onChange={e => setForgotEmail(e.target.value)}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 mb-4"
+                            placeholder="Enter your email"
+                            onKeyPress={e => e.key === 'Enter' && handleForgotPassword()}
+                        />
+                        <button onClick={handleForgotPassword} disabled={loading}
+                            className="w-full bg-gradient-to-r from-orange-500 to-green-600 text-white py-3 rounded-lg font-semibold disabled:opacity-50">
+                            {loading ? 'Sending...' : 'Send Reset Link'}
+                        </button>
+                        <button onClick={() => { setForgotStep(null); setError(''); setResetSuccess(''); }}
+                            className="w-full mt-3 text-sm text-gray-500 hover:text-orange-600">
+                            ← Back to Login
+                        </button>
+                    </div>
+                )}
 
-             < button
-            onClick = {
-                handleAuth
-            }
-            disabled = {
-                loading
-            }
-            className = "w-full bg-gradient-to-r from-orange-500 to-green-600 text-white py-3 rounded-lg font-semibold hover:from-orange-600 hover:to-green-700 transition duration-200 disabled:opacity-50"
-                 > {
-                loading ? 'Please wait...' : isRegistering ? 'Register' : 'Sign In'
-            }
-             <  / button >
+                {/* Reset Password — set new password */}
+                {forgotStep === 'reset' && (
+                    <div>
+                        <label className="block text-gray-700 text-sm font-semibold mb-2">New Password *</label>
+                        <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 mb-4"
+                            placeholder="Min 6 characters" />
+                        <label className="block text-gray-700 text-sm font-semibold mb-2">Confirm Password *</label>
+                        <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 mb-4"
+                            placeholder="Repeat new password"
+                            onKeyPress={e => e.key === 'Enter' && handleResetPassword()} />
+                        <button onClick={handleResetPassword} disabled={loading}
+                            className="w-full bg-gradient-to-r from-orange-500 to-green-600 text-white py-3 rounded-lg font-semibold disabled:opacity-50">
+                            {loading ? 'Resetting...' : 'Reset Password'}
+                        </button>
+                    </div>
+                )}
 
-             < p className = "text-center text-gray-600 text-sm mt-4" > {
-                isRegistering ? 'Already have an account?' : "Don't have an account?"
-            } {
-            ' '
-        }
-             < button
-            onClick = {
-                () => {
-                    setIsRegistering(!isRegistering);
-                    setError('');
-                }
-            }
-            className = "text-orange-600 font-semibold"
-                 > {
-                isRegistering ? 'Sign In' : 'Register'
-            }
-             <  / button >
-             <  / p >
-             <  / div >
-             <  / div >
-             <  / div > );
+                {/* Normal Login / Register */}
+                {!forgotStep && (
+                    <div>
+                        {isRegistering && (
+                            <div className="mb-4">
+                                <label className="block text-gray-700 text-sm font-semibold mb-2">Full Name *</label>
+                                <input type="text" value={name} onChange={e => setName(e.target.value)}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                    placeholder="Enter your name" />
+                            </div>
+                        )}
+                        <div className="mb-4">
+                            <label className="block text-gray-700 text-sm font-semibold mb-2">Email *</label>
+                            <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                placeholder="Enter email" />
+                        </div>
+                        <div className="mb-2">
+                            <label className="block text-gray-700 text-sm font-semibold mb-2">Password *</label>
+                            <input type="password" value={password} onChange={e => setPassword(e.target.value)}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                placeholder="Enter password"
+                                onKeyPress={e => e.key === 'Enter' && handleAuth(e)} />
+                        </div>
+
+                        {/* Forgot Password link — only on login */}
+                        {!isRegistering && (
+                            <div className="text-right mb-4">
+                                <button
+                                    onClick={() => { setForgotStep('forgot'); setForgotEmail(email); setError(''); setResetSuccess(''); }}
+                                    className="text-sm text-orange-600 hover:text-orange-700 font-medium">
+                                    Forgot Password?
+                                </button>
+                            </div>
+                        )}
+
+                        {isRegistering && (
+                            <div className="mb-6">
+                                <label className="block text-gray-700 text-sm font-semibold mb-2">Mobile (Optional)</label>
+                                <input type="tel" value={mobile} onChange={e => setMobile(e.target.value)}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                    placeholder="Enter mobile number" />
+                            </div>
+                        )}
+
+                        <button onClick={handleAuth} disabled={loading}
+                            className="w-full bg-gradient-to-r from-orange-500 to-green-600 text-white py-3 rounded-lg font-semibold hover:from-orange-600 hover:to-green-700 transition duration-200 disabled:opacity-50">
+                            {loading ? 'Please wait...' : isRegistering ? 'Register' : 'Sign In'}
+                        </button>
+
+                        <p className="text-center text-gray-600 text-sm mt-4">
+                            {isRegistering ? 'Already have an account?' : "Don't have an account?"}{' '}
+                            <button onClick={() => { setIsRegistering(!isRegistering); setError(''); }}
+                                className="text-orange-600 font-semibold">
+                                {isRegistering ? 'Sign In' : 'Register'}
+                            </button>
+                        </p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
     }
 
     const stats = calculatePortfolioStats();
