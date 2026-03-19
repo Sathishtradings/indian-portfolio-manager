@@ -3,18 +3,39 @@ const router = express.Router();
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 
-const transporter = nodemailer.createTransport({
-    host: 'smtp-relay.brevo.com',
-    port: 587,
-    secure: false,
-    auth: {
-        user: process.env.EMAIL_USER,  // your Brevo login email
-        pass: process.env.EMAIL_PASS   // Brevo SMTP Key (not your password)
+// Brevo API helper function
+async function sendEmailViaBrevo(to, subject, html, fromName = 'BuildnRise') {
+    const apiKey = process.env.BREVO_API_KEY;
+    const fromEmail = process.env.EMAIL_USER;
+
+    if (!apiKey || !fromEmail) {
+        throw new Error('Missing BREVO_API_KEY or EMAIL_USER environment variable');
     }
-});
+
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+            'api-key': apiKey,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            to: [{ email: to }],
+            sender: { email: fromEmail, name: fromName },
+            subject: subject,
+            htmlContent: html
+        })
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(`Brevo API error: ${error.message || response.statusText}`);
+    }
+
+    return response.json();
+}
+
 // Register
 router.post('/register', async (req, res) => {
   try {
@@ -125,31 +146,31 @@ router.post('/forgot-password', async (req, res) => {
         // Reset link — points to frontend
         const resetLink = `${process.env.CLIENT_URL}/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
 
-        await transporter.sendMail({
-            from: `"BuildnRise" <${process.env.EMAIL_USER}>`,
-            to: email,
-            subject: 'BuildnRise — Password Reset Link',
-            html: `
-                <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 12px;">
-                    <h2 style="color: #f97316;">BuildnRise Portfolio Manager</h2>
-                    <p>Hi ${user.name},</p>
-                    <p>We received a request to reset your password. Click the button below to set a new password:</p>
-                    <a href="${resetLink}" style="display:inline-block; margin: 16px 0; padding: 12px 24px; background: linear-gradient(to right, #f97316, #16a34a); color: white; border-radius: 8px; text-decoration: none; font-weight: bold;">
-                        Reset Password
-                    </a>
-                    <p style="color: #6b7280; font-size: 13px;">This link is valid for <strong>30 minutes</strong>. If you did not request this, ignore this email.</p>
-                </div>
-            `
-        });
+        const htmlContent = `
+            <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 12px;">
+                <h2 style="color: #f97316;">BuildnRise Portfolio Manager</h2>
+                <p>Hi ${user.name},</p>
+                <p>We received a request to reset your password. Click the button below to set a new password:</p>
+                <a href="${resetLink}" style="display:inline-block; margin: 16px 0; padding: 12px 24px; background: linear-gradient(to right, #f97316, #16a34a); color: white; border-radius: 8px; text-decoration: none; font-weight: bold;">
+                    Reset Password
+                </a>
+                <p style="color: #6b7280; font-size: 13px;">This link is valid for <strong>30 minutes</strong>. If you did not request this, ignore this email.</p>
+            </div>
+        `;
+
+        await sendEmailViaBrevo(
+            email,
+            'BuildnRise — Password Reset Link',
+            htmlContent
+        );
 
         res.json({ message: 'Password reset link sent to your email' });
 
     } catch (error) {
         console.error('Forgot password error:', error);
-        res.status(500).json({ message: 'Failed to send reset link' });
+        res.status(500).json({ message: 'Failed to send reset link', error: error.message });
     }
 });
-
 
 router.post('/reset-password', async (req, res) => {
     try {
@@ -168,7 +189,6 @@ router.post('/reset-password', async (req, res) => {
             return res.status(400).json({ message: 'Reset link has expired. Please request again.' });
 
         // Update password
-        const bcrypt = require('bcryptjs');
         const hashed = await bcrypt.hash(newPassword, 10);
         await User.findOneAndUpdate(
             { email },
