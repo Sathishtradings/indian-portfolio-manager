@@ -7,11 +7,12 @@ const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 
 const transporter = nodemailer.createTransport({
-    service: 'smtp.gmail.com',
-	port : 587,
+    host: 'smtp-relay.brevo.com',
+    port: 587,
+    secure: false,
     auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS  // Gmail App Password
+        user: process.env.EMAIL_USER,  // your Brevo login email
+        pass: process.env.EMAIL_PASS   // Brevo SMTP Key (not your password)
     }
 });
 // Register
