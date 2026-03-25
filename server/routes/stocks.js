@@ -1,8 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
+const angelOneService     = require('../services/angelOneService');
 const stockDataService = require('../services/stockDataService');
 const technicalAnalysisService = require('../services/technicalAnalysisService');
+const intradaySignalService = require('../services/intradaySignalService');
 
 // Get stock quote
 router.get('/quote/:symbol', auth, async (req, res) => {
@@ -46,21 +48,51 @@ router.get('/analysis/:symbol', auth, async (req, res) => {
 router.post('/scan', auth, async (req, res) => {
     try {
         const { symbols } = req.body;
-
-        if (!symbols || !Array.isArray(symbols)) {
+        if (!symbols || !Array.isArray(symbols))
             return res.status(400).json({ message: 'Please provide an array of symbols' });
-        }
 
         const results = [];
 
         for (const symbol of symbols) {
             try {
-                const analysis = await technicalAnalysisService.analyzeStock(symbol);
-                results.push({ symbol, ...analysis });
+                // Get symbol token from Angel One
+                const { token } = await angelOneService.searchSymbol(symbol);
+                await new Promise(r => setTimeout(r, 100));
+
+                // Real-time quote from Angel One
+                const quote = await angelOneService.getStockQuote(symbol, token);
+                await new Promise(r => setTimeout(r, 200));
+
+                // Historical data from Yahoo Finance (for technical indicators)
+                const historical = await stockDataService.getHistoricalData(symbol, 90);
+
+                // Technical analysis
+                const analysis = technicalAnalysisService.generateSignal(
+                    historical,
+                    { previousClose: quote.previousClose, changePercent: quote.changePercent }
+                );
+
+                results.push({
+                    symbol,
+                    ...analysis,
+                    indicators: {
+                        ...analysis.indicators,
+                        currentPrice:  quote.currentPrice,
+                        previousClose: quote.previousClose,
+                        priceChange:   quote.changePercent
+                    }
+                });
+
             } catch (error) {
-                results.push({ symbol, error: error.message });
+                // Fallback to Yahoo Finance for this stock
+                try {
+                    const analysis = await technicalAnalysisService.analyzeStock(symbol);
+                    results.push({ symbol, ...analysis });
+                } catch {
+                    results.push({ symbol, error: error.message });
+                }
             }
-            await new Promise(resolve => setTimeout(resolve, 300)); // ✅ delay after each stock
+            await new Promise(r => setTimeout(r, 150));
         }
 
         res.json(results);
@@ -70,38 +102,88 @@ router.post('/scan', auth, async (req, res) => {
         res.status(500).json({ message: 'Scan failed', error: error.message });
     }
 });
-
 router.get('/index/:name', auth, async (req, res) => {
     try {
         const indexName = decodeURIComponent(req.params.name);
-        const indexData = await stockDataService.getIndexData(indexName);
 
-        // Run technical analysis on historical data
+        // Real-time price from Angel One
+        const quote = await angelOneService.getIndexQuote(indexName);
+
+        // 90-day historical from Yahoo Finance (for swing analysis)
+        const INDEX_YAHOO = {
+            'NIFTY 50':     '^NSEI',
+            'BANK NIFTY':   '^NSEBANK',
+            'NIFTY IT':     '^CNXIT',
+            'NIFTY PHARMA': '^CNXPHARMA',
+            'NIFTY AUTO':   '^CNXAUTO',
+            'SENSEX':       '^BSESN'
+        };
+        const yahooSymbol = INDEX_YAHOO[indexName];
+        const historicalData = await stockDataService.getHistoricalData(yahooSymbol, 90, true); // true = no .NS suffix
+
+        // Swing analysis on historical data
         const analysis = technicalAnalysisService.generateSignal(
-            indexData.historicalData,
-            { previousClose: indexData.previousClose, changePercent: indexData.changePercent }
+            historicalData,
+            { previousClose: quote.previousClose, changePercent: quote.changePercent }
         );
 
         res.json({
             name: indexName,
-            currentPrice: indexData.currentPrice,
-            change: indexData.change,
-            changePercent: indexData.changePercent,
-            historicalData: indexData.historicalData.map(d => ({
-                date: d.date,
-                close: d.close,
-                open: d.open,
-                high: d.high,
-                low: d.low,
-                volume: d.volume
-            })),
+            currentPrice:  quote.currentPrice,
+            change:        quote.change,
+            changePercent: quote.changePercent,
+            open:          quote.open,
+            high:          quote.high,
+            low:           quote.low,
+            historicalData,
             ...analysis
         });
 
     } catch (error) {
-        console.error('Index analysis error:', error);
+        console.error('Index route error:', error.message);
+        // Fallback to Yahoo if Angel One fails
+        try {
+            const indexName = decodeURIComponent(req.params.name);
+            const indexData = await stockDataService.getIndexData(indexName);
+            const analysis  = technicalAnalysisService.generateSignal(
+                indexData.historicalData,
+                { previousClose: indexData.previousClose, changePercent: indexData.changePercent }
+            );
+            res.json({ name: indexName, ...indexData, ...analysis });
+        } catch (fallbackErr) {
+            res.status(500).json({ message: error.message });
+        }
+    }
+});
+
+
+// ── Intraday Signal — 5min candles via Angel One ──────────────────
+router.get('/index/:name/intraday', auth, async (req, res) => {
+    try {
+        const indexName = decodeURIComponent(req.params.name);
+
+        // Real-time 5min candles from Angel One
+        const candles = await angelOneService.getIntradayCandles(indexName, 'FIVE_MINUTE');
+
+        if (candles.length < 10)
+            return res.status(400).json({ message: 'Insufficient intraday data. Market may be closed.' });
+
+        // Generate algo signal
+        const signal = intradaySignalService.generateIntradaySignal(candles);
+
+        res.json({
+            index:       indexName,
+            candleCount: candles.length,
+            lastCandle:  candles[candles.length - 1],
+            dataSource:  'Angel One SmartAPI (Real-time)',
+            ...signal
+        });
+
+    } catch (error) {
+        console.error('Intraday signal error:', error.message);
         res.status(500).json({ message: error.message });
     }
 });
+
 
 module.exports = router;

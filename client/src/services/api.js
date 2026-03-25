@@ -48,7 +48,8 @@ export const stockAPI = {
   getHistorical: (symbol, days = 90) => api.get(`/stocks/historical/${symbol}?days=${days}`),
   getAnalysis: (symbol) => api.get(`/stocks/analysis/${symbol}`),
   scan: (symbols) => api.post('/stocks/scan', { symbols }),
-  getIndexAnalysis: (indexName) => api.get(`/stocks/index/${encodeURIComponent(indexName)}`) // ✅ inside stockAPI
+  getIndexAnalysis: (indexName) => api.get(`/stocks/index/${encodeURIComponent(indexName)}`), 
+  getIntradaySignal: (indexName) => api.get(`/stocks/index/${encodeURIComponent(indexName)}/intraday`)
 };
 
 // Portfolio API

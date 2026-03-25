@@ -129,9 +129,9 @@ class StockDataService {
     }
 
     // ── Historical Data ────────────────────────────────────────
-    async getHistoricalData(symbol, days = 90) {
+    async getHistoricalData(symbol, days = 90, isIndex = false) {
         try {
-            const yahooSymbol = `${symbol}.NS`;
+            const yahooSymbol = isIndex ? symbol :`${symbol}.NS`;
             const endDate = Math.floor(Date.now() / 1000);
             const startDate = endDate - (days * 24 * 60 * 60);
 
@@ -163,6 +163,40 @@ class StockDataService {
             throw new Error(`Failed to fetch historical data for ${symbol}`);
         }
     }
+	
+	async getIntradayData(yahooSymbol, interval = '5m') {
+    try {
+        const url = `https://query2.finance.yahoo.com/v8/finance/chart/${yahooSymbol}`;
+        const response = await axios.get(url, {
+            headers: HEADERS,
+            params: {
+                interval,       // '5m' for 5-minute candles
+                range: '1d'     // today's data only
+            },
+            timeout: 10000
+        });
+
+        const result = response.data.chart.result?.[0];
+        if (!result) throw new Error('No intraday data');
+
+        const timestamps = result.timestamp || [];
+        const quotes = result.indicators?.quote?.[0];
+        if (!quotes) throw new Error('No quotes in intraday data');
+
+        return timestamps.map((ts, i) => ({
+            date:   new Date(ts * 1000),
+            open:   quotes.open?.[i]   ?? null,
+            high:   quotes.high?.[i]   ?? null,
+            low:    quotes.low?.[i]    ?? null,
+            close:  quotes.close?.[i]  ?? null,
+            volume: quotes.volume?.[i] ?? 0
+        })).filter(d => d.close != null);
+
+    } catch (error) {
+        console.error(`❌ Intraday error for ${yahooSymbol}:`, error.message);
+        throw new Error(`Failed to fetch intraday data`);
+    }
+}
 
     // ── Multiple Quotes ────────────────────────────────────────
     async getMultipleQuotes(symbols) {

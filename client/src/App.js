@@ -74,6 +74,8 @@ const [newPassword, setNewPassword] = useState('');
 const [confirmPassword, setConfirmPassword] = useState('');
 const [resetToken, setResetToken] = useState('');
 const [resetSuccess, setResetSuccess] = useState('');
+const [intradaySignal, setIntradaySignal] = useState(null);
+const [intradayLoading, setIntradayLoading] = useState(false);
     
 	const handleIndexAnalysis = async (indexName) => {
 	if (selectedIndex === indexName && indexAnalysis){
@@ -111,6 +113,19 @@ const [resetSuccess, setResetSuccess] = useState('');
         price: ''
     });
 
+
+const handleIntradaySignal = async (indexName) => {
+    setIntradayLoading(true);
+    setIntradaySignal(null);
+    try {
+        const response = await stockAPI.getIntradaySignal(indexName);
+        setIntradaySignal(response.data);
+    } catch (err) {
+        setError(err.response?.data?.message || `Failed to fetch intraday signal`);
+    } finally {
+        setIntradayLoading(false);
+    }
+};
     // Check if user is logged in on mount
     // Check if user is logged in on mount
     useEffect(() => {
@@ -943,6 +958,150 @@ useEffect(() => {
         </div>
     )}
 </div>
+<div className="mt-4 pt-4 border-t border-gray-200">
+    <div className="flex items-center justify-between mb-3">
+        <h4 className="font-semibold text-gray-800">⚡ Intraday Signal (5min)</h4>
+        <button
+            onClick={() => handleIntradaySignal(selectedIndex)}
+            disabled={intradayLoading}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-50"
+        >
+            {intradayLoading ? 'Analysing...' : '🔍 Get Live Signal'}
+        </button>
+    </div>
+
+    {intradaySignal && (
+        <div className="space-y-4">
+            {/* Action Banner */}
+            <div className={`p-4 rounded-xl border-2 flex items-center justify-between ${
+                intradaySignal.action?.includes('BUY')  ? 'bg-green-50 border-green-400' :
+                intradaySignal.action?.includes('SELL') ? 'bg-red-50 border-red-400' :
+                'bg-gray-50 border-gray-300'
+            }`}>
+                <div>
+                    <div className={`text-3xl font-bold ${
+                        intradaySignal.action?.includes('BUY')  ? 'text-green-600' :
+                        intradaySignal.action?.includes('SELL') ? 'text-red-600' :
+                        'text-gray-600'
+                    }`}>
+                        {intradaySignal.action}
+                    </div>
+                    <div className="text-sm text-gray-500 mt-1">
+                        {intradaySignal.strength} · Confidence: {intradaySignal.confidence}%
+                    </div>
+                </div>
+                <div className="text-right">
+                    <div className="text-xs text-gray-500">Score</div>
+                    <div className="text-2xl font-bold text-gray-800">
+                        {intradaySignal.score > 0 ? '+' : ''}{intradaySignal.score}
+                    </div>
+                </div>
+            </div>
+
+            {/* Trade Levels */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="bg-blue-50 rounded-lg p-3 text-center">
+                    <div className="text-xs text-gray-500 mb-1">Entry</div>
+                    <div className="font-bold text-blue-700">₹{intradaySignal.trade?.entry}</div>
+                </div>
+                <div className="bg-red-50 rounded-lg p-3 text-center">
+                    <div className="text-xs text-gray-500 mb-1">Stop Loss</div>
+                    <div className="font-bold text-red-600">₹{intradaySignal.trade?.stopLoss}</div>
+                </div>
+                <div className="bg-green-50 rounded-lg p-3 text-center">
+                    <div className="text-xs text-gray-500 mb-1">Target 1</div>
+                    <div className="font-bold text-green-600">₹{intradaySignal.trade?.target1}</div>
+                </div>
+                <div className="bg-green-100 rounded-lg p-3 text-center">
+                    <div className="text-xs text-gray-500 mb-1">Target 2</div>
+                    <div className="font-bold text-green-700">₹{intradaySignal.trade?.target2}</div>
+                </div>
+            </div>
+
+            {/* Risk:Reward + Direction */}
+            <div className="flex gap-3">
+                <div className="flex-1 bg-purple-50 rounded-lg p-3 text-center">
+                    <div className="text-xs text-gray-500 mb-1">Risk : Reward</div>
+                    <div className="font-bold text-purple-700">1 : {intradaySignal.trade?.riskReward}</div>
+                </div>
+                <div className="flex-1 bg-orange-50 rounded-lg p-3 text-center">
+                    <div className="text-xs text-gray-500 mb-1">Direction</div>
+                    <div className={`font-bold ${
+                        intradaySignal.trade?.direction === 'LONG' ? 'text-green-600' : 'text-red-600'
+                    }`}>{intradaySignal.trade?.direction}</div>
+                </div>
+                <div className="flex-1 bg-gray-50 rounded-lg p-3 text-center">
+                    <div className="text-xs text-gray-500 mb-1">ATR</div>
+                    <div className="font-bold text-gray-700">{intradaySignal.indicators?.atr}</div>
+                </div>
+            </div>
+
+            {/* Key Indicators */}
+            <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
+                {[
+                    { label: 'EMA 9',  value: `₹${intradaySignal.indicators?.ema9}` },
+                    { label: 'EMA 21', value: `₹${intradaySignal.indicators?.ema21}` },
+                    { label: 'VWAP',   value: `₹${intradaySignal.indicators?.vwap}` },
+                    { label: 'RSI',    value: intradaySignal.indicators?.rsi },
+                    { label: 'Supertrend', value: intradaySignal.indicators?.supertrend?.direction }
+                ].map(item => (
+                    <div key={item.label} className="bg-white border border-gray-200 rounded-lg p-2 text-center">
+                        <div className="text-xs text-gray-400">{item.label}</div>
+                        <div className="text-sm font-bold text-gray-800">{item.value ?? '-'}</div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Support / Resistance */}
+            <div className="flex gap-3">
+                <div className="flex-1 bg-green-50 rounded-lg p-3 text-center">
+                    <div className="text-xs text-gray-500 mb-1">Support</div>
+                    <div className="font-bold text-green-600">₹{intradaySignal.levels?.support}</div>
+                </div>
+                <div className="flex-1 bg-red-50 rounded-lg p-3 text-center">
+                    <div className="text-xs text-gray-500 mb-1">Resistance</div>
+                    <div className="font-bold text-red-600">₹{intradaySignal.levels?.resistance}</div>
+                </div>
+            </div>
+
+            {/* Signal Breakdown */}
+            <div>
+                <h5 className="text-sm font-semibold text-gray-700 mb-2">Signal Breakdown</h5>
+                <ul className="space-y-1">
+                    {intradaySignal.signals?.map((s, i) => (
+                        <li key={i} className="flex items-start text-xs text-gray-600">
+                            <span className={`mr-2 font-bold ${
+                                s.signal?.includes('BUY') || s.signal === 'Bullish' || s.signal === 'Oversold'
+                                    ? 'text-green-600'
+                                    : s.signal?.includes('SELL') || s.signal === 'Bearish' || s.signal === 'Overbought'
+                                    ? 'text-red-600'
+                                    : 'text-gray-500'
+                            }`}>●</span>
+                            <span><strong>{s.indicator}:</strong> {s.description}</span>
+                        </li>
+                    ))}
+                </ul>
+            </div>
+
+            {/* Candle Pattern */}
+            {intradaySignal.candle && (
+                <div className={`p-3 rounded-lg text-sm ${
+                    intradaySignal.candle.type === 'BULLISH' ? 'bg-green-50 text-green-700' :
+                    intradaySignal.candle.type === 'BEARISH' ? 'bg-red-50 text-red-700' :
+                    'bg-gray-50 text-gray-600'
+                }`}>
+                    🕯️ <strong>{intradaySignal.candle.name}</strong> pattern detected on last 5min candle
+                </div>
+            )}
+
+            <p className="text-xs text-gray-400 text-center">
+                Based on {intradaySignal.candleCount} × 5min candles · 
+                Last candle: {new Date(intradaySignal.lastCandle?.date).toLocaleTimeString('en-IN')}
+            </p>
+        </div>
+    )}
+</div>
+
                  
                  < div className = "bg-white rounded-xl shadow-sm p-6 mb-6" >
                      < div className = "mb-6" >
