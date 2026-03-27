@@ -12,11 +12,7 @@ const HEADERS = {
 // ✅ Defined outside the class — accessible by getIndexData
 const INDEX_SYMBOLS = {
     'NIFTY 50':     '^NSEI',
-    'BANK NIFTY':   '^NSEBANK',
-    'NIFTY IT':     '^CNXIT',
-    'NIFTY PHARMA': '^CNXPHARMA',
-    'NIFTY AUTO':   '^CNXAUTO',
-    'SENSEX':       '^BSESN'
+    
 };
 
 class StockDataService {
